@@ -1,60 +1,28 @@
-from typing import Optional
+from typing import Callable
 
 import httpx
 import typer
-from pydantic import AnyUrl, BaseModel, Field, ValidationError
+from pydantic import AnyUrl
 from rich import print
 from rich.console import Console
 from rich.prompt import Prompt
-from sqlalchemy import Integer, String, create_engine, select
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+
+from caller.crud.api_calls import api_call_crud
+from caller.db import APICallDB, Base
+from caller.schemas.api_calls import APICallCreate, APICallGet, APICallUpdate
 
 
-class Base(DeclarativeBase):
-    pass
-
-
-class APICallDB(Base):
-    __tablename__ = "api_calls"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str]
-    url: Mapped[str] = mapped_column(String, nullable=True)
-
-
-class APICallBase(BaseModel):
-    name: Optional[str] = Field(default=None)
-    url: Optional[AnyUrl] = Field(default=None)
-    # headers: Optional[dict] = Field(default=None)
-
-
-class APICallCreate(APICallBase):
-    name: str
-
-
-class APICallUpdate(APICallBase):
-    ...
-
-
-class APICallGet(APICallBase):
-    id: int
-
-    class Config:
-        orm_mode = True
-
-
-def create_api_call(session: Session):
+def create_api_call(session: Session) -> None:
     name = Prompt.ask("name")
     create_obj = APICallCreate(name=name)
-    db_obj = APICallDB(**create_obj.dict(exclude_unset=True))
-    session.add(db_obj)
-    session.commit()
-    session.refresh(db_obj)
+    api_call_crud.create(session, obj_in=create_obj)
 
 
 def list_api_calls(session: Session):
-    stmt = select(APICallDB)
-    api_calls = session.execute(stmt).scalars()
+    # TODO: Pagination?
+    api_calls = api_call_crud.get_multi(session)
 
     for api_call in api_calls:
         print(f"{api_call.id}: {APICallGet.from_orm(api_call)}")
@@ -62,78 +30,74 @@ def list_api_calls(session: Session):
     print("-------------------------------")
 
 
-def modify_api_call(session: Session):
-    api_call_id = Prompt.ask("provide api call id")
-
-    stmt = select(APICallDB).where(APICallDB.id == api_call_id)
-    api_call = session.execute(stmt).scalars().first()
-
-    if api_call is None:
-        err_console.print("api call not found")
-        return
-
-    print(APICallGet.from_orm(api_call))
-
-    print("modify api call")
-
-    stuff = {}
-    for i, prop in enumerate(APICallUpdate.schema()["properties"].keys(), start=1):
-        stuff[i] = prop
-    print(stuff)
-
-    prop_input = int(Prompt.ask("field to modify"))
-    prop_value = Prompt.ask(f"value to field {stuff[prop_input]}")
-
-    try:
-        update_obj = APICallUpdate(**{stuff[prop_input]: prop_value})
-    except ValidationError as e:
-        for err in e.errors():
-            err_console.print("validation failed", err["msg"])
-        return
-
-    update_data = update_obj.dict(exclude_unset=True)
-    for field in update_data.keys():
-        setattr(api_call, field, update_data[field])
-
-    session.add(api_call)
-    session.commit()
-    session.refresh(api_call)
-
-
+# TODO: Wrapper around this?
 def open_api_call(session: Session) -> None:
     api_call_id = Prompt.ask("provide api call id")
 
-    stmt = select(APICallDB).where(APICallDB.id == api_call_id)
-    api_call = session.execute(stmt).scalars().first()
+    api_call = api_call_crud.get(session, id=api_call_id)
 
     if api_call is None:
         err_console.print("api call not found")
         return
 
-    print(APICallGet.from_orm(api_call))
+    while True:
+        print(APICallGet.from_orm(api_call))
 
-    action = int(Prompt.ask("action"))
+        for num, option in API_CALL_ACTIONS.items():
+            print(f"{num}: [bold green]{option[1]}[/bold green]")
 
-    API_CALL_ACTIONS[action][0](api_call)
+        action = int(Prompt.ask("action"))
+
+        # TODO: this aint it chief
+        if action == 9:
+            break
+
+        API_CALL_ACTIONS[action][0](session, api_call)
 
 
-def call_api(api_call: APICallDB) -> None:
+def call_api(_session: Session, api_call: APICallDB) -> None:
     res = httpx.get(api_call.url)
+
+    try:
+        res.raise_for_status()
+    except httpx.HTTPStatusError:
+        err_console.print("request failed with error code", res.status_code)
+
+        if res.content:
+            err_console.print(res.content)
+
+        return
+
     print()
     print(res.json())
     print()
 
 
-API_CALL_ACTIONS = {
+def set_url(session: Session, api_call: APICallDB) -> None:
+    # TODO: Defaults
+    scheme = Prompt.ask("scheme")
+    host = Prompt.ask("host")
+    port = Prompt.ask("port")
+    path = Prompt.ask("path")
+
+    url = AnyUrl.build(scheme=scheme, host=host, port=port, path=path)
+
+    api_call_crud.update(session, db_obj=api_call, obj_in=APICallUpdate(url=url))
+
+
+API_CALL_ACTIONS: dict[int, tuple[Callable[[Session, APICallDB], None], str]] = {
     1: (call_api, "call api"),
+    2: (set_url, "set url"),
+    # TODO: Add param
+    # TODO: Add header
+    # TODO: Add json data creation thingy?
 }
 
 
-COMMAND_OPTIONS = {
+COMMAND_OPTIONS: dict[int, tuple[Callable[[Session], None], str]] = {
     1: (create_api_call, "create new api call"),
     2: (list_api_calls, "list api calls"),
     3: (open_api_call, "open api call"),
-    4: (modify_api_call, "modify api call"),
 }
 
 console = Console()
@@ -141,16 +105,16 @@ err_console = Console(stderr=True)
 
 
 def app(session: Session):
-    # print(APICall.schema())
-    # raise typer.Exit(code=0)
-    # list_api_calls(session)
-
     for num, option in COMMAND_OPTIONS.items():
         print(f"{num}: [bold green]{option[1]}[/bold green]")
 
     choise = int(Prompt.ask("choise"))
 
-    COMMAND_OPTIONS[choise][0](session)
+    action, _ = COMMAND_OPTIONS[choise]
+
+    typer.clear()
+    action(session)
+    # COMMAND_OPTIONS[choise][0](session)
 
 
 def init(debug: bool = False):

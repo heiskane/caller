@@ -6,7 +6,6 @@ from pydantic import AnyUrl, BaseModel, Field, ValidationError
 from rich import print
 from rich.console import Console
 from rich.prompt import Prompt
-from rich.table import Table
 from sqlalchemy import Integer, String, create_engine, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
@@ -37,7 +36,7 @@ class APICallUpdate(APICallBase):
     ...
 
 
-class APICallGet(BaseModel):
+class APICallGet(APICallBase):
     id: int
 
     class Config:
@@ -52,40 +51,34 @@ def create_api_call(session: Session):
     session.commit()
     session.refresh(db_obj)
 
-    modify_api_call(db_obj.id, session)
-
 
 def list_api_calls(session: Session):
     stmt = select(APICallDB)
     api_calls = session.execute(stmt).scalars()
 
-    # TODO: Use model schema to dynamically do things
-    table = Table("id", "name", "url")
-
     for api_call in api_calls:
-        table.add_row(
-            str(api_call.id),
-            api_call.name,
-            api_call.url,
-        )
-    console.print(table)
+        print(f"{api_call.id}: {APICallGet.from_orm(api_call)}")
+
+    print("-------------------------------")
 
 
-def modify_api_call(id: int, session: Session):
-    stmt = select(APICallDB).where(APICallDB.id == id)
+def modify_api_call(session: Session):
+    api_call_id = Prompt.ask("provide api call id")
+
+    stmt = select(APICallDB).where(APICallDB.id == api_call_id)
     api_call = session.execute(stmt).scalars().first()
-    # print(api_call.__dict__)
 
     if api_call is None:
-        print("api call not found")
+        err_console.print("api call not found")
         return
+
+    print(APICallGet.from_orm(api_call))
 
     print("modify api call")
 
     stuff = {}
     for i, prop in enumerate(APICallUpdate.schema()["properties"].keys(), start=1):
         stuff[i] = prop
-        # print(prop, getattr(api_call, prop))
     print(stuff)
 
     prop_input = int(Prompt.ask("field to modify"))
@@ -96,8 +89,7 @@ def modify_api_call(id: int, session: Session):
     except ValidationError as e:
         for err in e.errors():
             err_console.print("validation failed", err["msg"])
-        modify_api_call(id, session)
-    # setattr(update_obj, stuff[prop_input], prop_value)
+        return
 
     update_data = update_obj.dict(exclude_unset=True)
     for field in update_data.keys():
@@ -105,13 +97,43 @@ def modify_api_call(id: int, session: Session):
 
     session.add(api_call)
     session.commit()
-    # session.refresh(api_call)
+    session.refresh(api_call)
 
-    modify_api_call(id, session)
+
+def open_api_call(session: Session) -> None:
+    api_call_id = Prompt.ask("provide api call id")
+
+    stmt = select(APICallDB).where(APICallDB.id == api_call_id)
+    api_call = session.execute(stmt).scalars().first()
+
+    if api_call is None:
+        err_console.print("api call not found")
+        return
+
+    print(APICallGet.from_orm(api_call))
+
+    action = int(Prompt.ask("action"))
+
+    API_CALL_ACTIONS[action][0](api_call)
+
+
+def call_api(api_call: APICallDB) -> None:
+    res = httpx.get(api_call.url)
+    print()
+    print(res.json())
+    print()
+
+
+API_CALL_ACTIONS = {
+    1: (call_api, "call api"),
+}
 
 
 COMMAND_OPTIONS = {
     1: (create_api_call, "create new api call"),
+    2: (list_api_calls, "list api calls"),
+    3: (open_api_call, "open api call"),
+    4: (modify_api_call, "modify api call"),
 }
 
 console = Console()
@@ -121,7 +143,7 @@ err_console = Console(stderr=True)
 def app(session: Session):
     # print(APICall.schema())
     # raise typer.Exit(code=0)
-    list_api_calls(session)
+    # list_api_calls(session)
 
     for num, option in COMMAND_OPTIONS.items():
         print(f"{num}: [bold green]{option[1]}[/bold green]")

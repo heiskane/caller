@@ -28,9 +28,9 @@ from caller.schemas.responses import ResponseCreate, ResponseGet
 
 @dataclass
 class AppMenu:
+    session: Session
     console: Console
     err_console: Console
-    session: Session
     running: bool = True
     options: list[tuple[Callable[[], None], str]] = field(default_factory=list)
 
@@ -83,9 +83,7 @@ class MainMenu(AppMenu):
     def __init__(
         self, session: Session, console: Console, err_console: Console
     ) -> None:
-        self.session = session
-        self.console = console
-        self.err_console = err_console
+        super().__init__(session, console, err_console)
         self.options = [
             (self._create_api_call, "create new api call"),
             (self._list_api_calls, "list api calls"),
@@ -130,11 +128,8 @@ class APICallMenu(AppMenu):
         console: Console,
         err_console: Console,
     ) -> None:
-        self.running = True
+        super().__init__(session, console, err_console)
         self.selected_api_call = api_call
-        self.session = session
-        self.console = console
-        self.err_console = err_console
         self.options = [
             (self._call_api, "call api"),
             (self._set_url, "set url"),
@@ -143,6 +138,8 @@ class APICallMenu(AppMenu):
             (self._list_responses, "list responses"),
             (self._exit, "back"),
         ]
+
+    # TODO: Copy respone json to clipboard
 
     def _pre_run(self) -> None:
         self.console.print(APICallGet.from_orm(self.selected_api_call))

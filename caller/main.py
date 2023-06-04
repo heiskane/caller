@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from enum import auto
 from typing import Optional
 
@@ -11,14 +12,16 @@ from sqlalchemy import Enum, create_engine
 from sqlalchemy.orm import Session
 
 from caller.crud.api_calls import api_call_crud
-from caller.db import APICallDB, Base
-from caller.enums import Methods
+from caller.crud.responses import response_crud
+from caller.db import APICall, Base
+from caller.enums import Method
 from caller.schemas.api_calls import (
     APICallCreate,
     APICallGet,
     APICallReady,
     APICallUpdate,
 )
+from caller.schemas.responses import ResponseCreate
 
 
 class App:
@@ -28,7 +31,7 @@ class App:
         self.session = session
         self.console = console
         self.err_console = err_console
-        self.selected_api_call: Optional[APICallDB] = None
+        self.selected_api_call: Optional[APICall] = None
         self.current_menu = Menu.MAIN
         self.menus = {
             Menu.MAIN: {
@@ -49,7 +52,18 @@ class App:
             for num, opt in self.menus[self.current_menu].items():
                 print(f"{num}: [bold green]{opt[1]}[/bold green]")
 
-            choise = int(Prompt.ask("choise"))
+            choise_str = Prompt.ask("choise")
+
+            try:
+                choise = int(choise_str)
+            except ValueError:
+                self.err_console.print("choise must be int")
+                continue
+
+            if choise not in self.menus[self.current_menu]:
+                self.err_console.print("invalid selection")
+                continue
+
             action, _ = self.menus[self.current_menu][choise]
             action()
 
@@ -65,10 +79,11 @@ class App:
         # TODO: Pagination?
         api_calls = api_call_crud.get_multi(self.session)
 
+        print()
         for api_call in api_calls:
             print(f"{api_call.id}: {APICallGet.from_orm(api_call)}")
 
-        print("-------------------------------")
+        print()
 
     def _open_api_call(self) -> None:
         self._list_api_calls()
@@ -109,6 +124,19 @@ class App:
         print(res.json())
         print()
 
+        response_crud.create(
+            self.session,
+            obj_in=ResponseCreate(
+                timestamp=datetime.now(timezone.utc),
+                url=validated_call.url,
+                code=res.status_code,
+                method=validated_call.method,
+                # TODO: Maybe keep it in bytes?
+                content=str(res.content),
+                api_call_id=validated_call.id,
+            ),
+        )
+
     def _set_url(self) -> None:
         if self.selected_api_call is None:
             return
@@ -127,8 +155,8 @@ class App:
         if self.selected_api_call is None:
             return
 
-        method_input = Prompt.ask("method", default=Methods.GET.value)
-        method = Methods(method_input)
+        method_input = Prompt.ask("method", default=Method.GET.value)
+        method = Method(method_input)
         api_call_crud.update(
             self.session,
             db_obj=self.selected_api_call,

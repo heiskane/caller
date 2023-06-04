@@ -17,7 +17,7 @@ class StrEnum(str, Enum):
         return name
 
 
-class Methods(StrEnum):
+class Method(StrEnum):
     GET = auto()
     POST = auto()
     PATCH = auto()

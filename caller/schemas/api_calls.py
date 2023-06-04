@@ -2,13 +2,13 @@ from typing import Annotated, Optional
 
 from pydantic import AnyUrl, BaseModel, Field
 
-from caller.enums import Methods
+from caller.enums import Method
 
 
 class APICallBase(BaseModel):
     name: Annotated[Optional[str], Field()] = None
     url: Annotated[Optional[str], AnyUrl] = None
-    method: Annotated[Optional[Methods], Field()] = None
+    method: Annotated[Optional[Method], Field()] = None
     # headers: Optional[dict] = Field(default=None)
 
 
@@ -28,8 +28,9 @@ class APICallGet(APICallBase):
 
 
 class APICallReady(APICallBase):
+    id: int
     url: AnyUrl
-    method: Methods
+    method: Method
 
     class Config:
         orm_mode = True

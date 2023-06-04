@@ -235,7 +235,7 @@ class Menu(Enum):
     API_CALL = auto()
 
 
-def init(debug: bool = False):
+def init(debug: bool = False) -> None:
     engine = create_engine("sqlite:///api_call.db", echo=debug)
     Base.metadata.create_all(engine)
 

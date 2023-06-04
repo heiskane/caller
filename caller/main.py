@@ -48,9 +48,13 @@ class AppMenu:
             action, _ = self.options[choice - 1]
             action()
 
+    # TODO: set pre print objects instead?
     def _pre_run(self) -> None:
         ...
 
+    # TODO: IS this a mistake?
+    # if i want to print_json instead?
+    # Or should json be printed atfer as a separate thing?
     def _print_err(self, msg: str) -> None:
         self.err_console.print(f"[red]ERROR: [bold]{msg}")
 
@@ -189,22 +193,16 @@ class APICallMenu(AppMenu):
         except httpx.RequestError:
             self._print_err("request error")
             return
-        # except httpx.HTTPStatusError:
-        #     self.err_console.print("request failed with error code", res.status_code)
-        #
-        #     if res.content:
-        #         self.err_console.print(res.content)
-        #
-        #     return
 
         if res.is_success is False:
             ...
 
-        print()
-        print(res.json())
-        print()
+        self.console.print()
+        self.console.print("[bold blue]STATUS CODE:", res.status_code)
+        self.console.print()
+        self.console.print_json(res.content.decode())
+        self.console.print()
 
-        self.console.print(JSON(res.content.decode()))
         response_crud.create(
             self.session,
             obj_in=ResponseCreate(

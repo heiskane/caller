@@ -20,7 +20,7 @@ pylint = "^2.17.4"
 ruff = "^0.0.270"
 
 [tool.poetry.scripts]
-cli_script = "caller.cli:run_app"
+caller_cli = "caller.cli:run_app"
 
 [build-system]
 requires = ["poetry-core"]

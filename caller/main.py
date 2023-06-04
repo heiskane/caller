@@ -36,6 +36,7 @@ class AppMenu:
 
     def run(self) -> None:
         while self.running:
+            # typer.clear()
             self._pre_run()
             self._display_options()
 
@@ -87,9 +88,6 @@ class MainMenu(AppMenu):
             (self._open_api_call, "open api call"),
         ]
 
-    def _open_main_menu(self) -> None:
-        self.current_menu = Menu.MAIN
-
     def _create_api_call(self) -> None:
         name = Prompt.ask("name")
         create_obj = APICallCreate(name=name)
@@ -106,6 +104,7 @@ class MainMenu(AppMenu):
         print()
 
     def _open_api_call(self) -> None:
+        typer.clear()
         self._list_api_calls()
         api_call_id = Prompt.ask("provide api call id")
 

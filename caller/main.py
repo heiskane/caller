@@ -21,7 +21,7 @@ from caller.schemas.api_calls import (
     APICallReady,
     APICallUpdate,
 )
-from caller.schemas.responses import ResponseCreate
+from caller.schemas.responses import ResponseCreate, ResponseGet
 
 
 class App:
@@ -34,37 +34,46 @@ class App:
         self.selected_api_call: Optional[APICall] = None
         self.current_menu = Menu.MAIN
         self.menus = {
-            Menu.MAIN: {
-                1: (self._create_api_call, "create new api call"),
-                2: (self._list_api_calls, "list api calls"),
-                3: (self._open_api_call, "open api call"),
-            },
-            Menu.API_CALL: {
-                1: (self._call_api, "call api"),
-                2: (self._set_url, "set url"),
-                3: (self._set_method, "set method"),
-                4: (self._open_main_menu, "back to main menu"),
-            },
+            Menu.MAIN: [
+                (self._create_api_call, "create new api call"),
+                (self._list_api_calls, "list api calls"),
+                (self._open_api_call, "open api call"),
+            ],
+            Menu.API_CALL: [
+                (self._call_api, "call api"),
+                (self._set_url, "set url"),
+                (self._set_method, "set method"),
+                (self._set_content, "set content"),
+                (self._list_responses, "list responses"),
+                (self._open_main_menu, "back to main menu"),
+            ],
         }
 
     def run(self) -> None:
         while True:
-            for num, opt in self.menus[self.current_menu].items():
+            # TODO: kludge
+            if (
+                self.current_menu == Menu.API_CALL
+                and self.selected_api_call is not None
+            ):
+                print(APICallGet.from_orm(self.selected_api_call))
+
+            for num, opt in enumerate(self.menus[self.current_menu], start=1):
                 print(f"{num}: [bold green]{opt[1]}[/bold green]")
 
-            choise_str = Prompt.ask("choise")
+            choice_str = Prompt.ask("choice")
 
             try:
-                choise = int(choise_str)
+                choice = int(choice_str)
             except ValueError:
-                self.err_console.print("choise must be int")
+                self.err_console.print("choice must be int")
                 continue
 
-            if choise not in self.menus[self.current_menu]:
+            if choice < 1 or choice > len(self.menus[self.current_menu]):
                 self.err_console.print("invalid selection")
                 continue
 
-            action, _ = self.menus[self.current_menu][choise]
+            action, _ = self.menus[self.current_menu][choice - 1]
             action()
 
     def _open_main_menu(self) -> None:
@@ -85,6 +94,22 @@ class App:
 
         print()
 
+    def _list_responses(self) -> None:
+        if self.selected_api_call is None:
+            self.err_console.print("no selected api call")
+            return
+
+        # TODO: Pagination?
+        responses = response_crud.get_by_api_call(
+            self.session, api_call=self.selected_api_call
+        )
+
+        print()
+        for response in responses:
+            print(f"{response.id}: {ResponseGet.from_orm(response)}")
+
+        print()
+
     def _open_api_call(self) -> None:
         self._list_api_calls()
         api_call_id = Prompt.ask("provide api call id")
@@ -94,8 +119,6 @@ class App:
             return
 
         self.selected_api_call = api_call
-
-        print(APICallGet.from_orm(self.selected_api_call))
         self.current_menu = Menu.API_CALL
 
     def _call_api(self) -> None:
@@ -108,7 +131,11 @@ class App:
             return
 
         try:
-            res = httpx.request(validated_call.method.value, validated_call.url)
+            res = httpx.request(
+                validated_call.method.value,
+                validated_call.url,
+                content=validated_call.content,
+            )
         except httpx.RequestError:
             self.err_console.print("request error")
             return
@@ -161,6 +188,17 @@ class App:
             self.session,
             db_obj=self.selected_api_call,
             obj_in=APICallUpdate(method=method),
+        )
+
+    def _set_content(self) -> None:
+        if self.selected_api_call is None:
+            return
+
+        content = Prompt.ask("content")
+        api_call_crud.update(
+            self.session,
+            db_obj=self.selected_api_call,
+            obj_in=APICallUpdate(content=content),
         )
 
 

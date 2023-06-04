@@ -18,6 +18,7 @@ class APICall(Base):
     name: Mapped[str]
     url: Mapped[Optional[str]]
     method: Mapped[Optional[Method]]
+    content: Mapped[Optional[str]]
 
     responses: Mapped[list["Response"]] = relationship(back_populates="api_call")
 

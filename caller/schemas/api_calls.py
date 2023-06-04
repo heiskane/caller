@@ -9,6 +9,7 @@ class APICallBase(BaseModel):
     name: Annotated[Optional[str], Field()] = None
     url: Annotated[Optional[str], AnyUrl] = None
     method: Annotated[Optional[Method], Field()] = None
+    content: Annotated[Optional[str], Field()] = None
     # headers: Optional[dict] = Field(default=None)
 
 
@@ -31,6 +32,7 @@ class APICallReady(APICallBase):
     id: int
     url: AnyUrl
     method: Method
+    content: Optional[str]
 
     class Config:
         orm_mode = True

@@ -1,4 +1,6 @@
-from sqlalchemy import Enum, Integer, String
+from typing import Optional
+
+from sqlalchemy import Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from caller.enums import Methods
@@ -13,5 +15,13 @@ class APICallDB(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str]
-    url: Mapped[str] = mapped_column(String, nullable=True)
-    method: Mapped[Methods]
+    url: Mapped[Optional[str]]
+    method: Mapped[Optional[Methods]]
+
+
+class ResponseDB(Base):
+    __tablename__ = "responses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    content: Mapped[Optional[str]]
+    # TODO: Relations?

@@ -19,3 +19,8 @@ class StrEnum(str, Enum):
 
 class Methods(StrEnum):
     GET = auto()
+    POST = auto()
+    PATCH = auto()
+    PUT = auto()
+    DELETE = auto()
+    OPTIONS = auto()

@@ -1,4 +1,5 @@
-from typing import Callable
+from enum import auto
+from typing import Optional
 
 import httpx
 import typer
@@ -6,7 +7,7 @@ from pydantic import AnyUrl, ValidationError
 from rich import print
 from rich.console import Console
 from rich.prompt import Prompt
-from sqlalchemy import create_engine
+from sqlalchemy import Enum, create_engine
 from sqlalchemy.orm import Session
 
 from caller.crud.api_calls import api_call_crud
@@ -20,122 +21,124 @@ from caller.schemas.api_calls import (
 )
 
 
-def create_api_call(session: Session) -> None:
-    name = Prompt.ask("name")
-    create_obj = APICallCreate(name=name)
-    api_call_crud.create(session, obj_in=create_obj)
+class App:
+    def __init__(
+        self, session: Session, console: Console, err_console: Console
+    ) -> None:
+        self.session = session
+        self.console = console
+        self.err_console = err_console
+        self.selected_api_call: Optional[APICallDB] = None
+        self.current_menu = Menu.MAIN
+        self.menus = {
+            Menu.MAIN: {
+                1: (self._create_api_call, "create new api call"),
+                2: (self._list_api_calls, "list api calls"),
+                3: (self._open_api_call, "open api call"),
+            },
+            Menu.API_CALL: {
+                1: (self._call_api, "call api"),
+                2: (self._set_url, "set url"),
+                3: (self._set_method, "set method"),
+                4: (self._open_main_menu, "back to main menu"),
+            },
+        }
+
+    def run(self) -> None:
+        while True:
+            for num, opt in self.menus[self.current_menu].items():
+                print(f"{num}: [bold green]{opt[1]}[/bold green]")
+
+            choise = int(Prompt.ask("choise"))
+            action, _ = self.menus[self.current_menu][choise]
+            action()
+
+    def _open_main_menu(self) -> None:
+        self.current_menu = Menu.MAIN
+
+    def _create_api_call(self) -> None:
+        name = Prompt.ask("name")
+        create_obj = APICallCreate(name=name)
+        api_call_crud.create(self.session, obj_in=create_obj)
+
+    def _list_api_calls(self) -> None:
+        # TODO: Pagination?
+        api_calls = api_call_crud.get_multi(self.session)
+
+        for api_call in api_calls:
+            print(f"{api_call.id}: {APICallGet.from_orm(api_call)}")
+
+        print("-------------------------------")
+
+    def _open_api_call(self) -> None:
+        self._list_api_calls()
+        api_call_id = Prompt.ask("provide api call id")
+
+        if (api_call := api_call_crud.get(self.session, id=api_call_id)) is None:
+            self.err_console.print("api call not found")
+            return
+
+        self.selected_api_call = api_call
+
+        print(APICallGet.from_orm(self.selected_api_call))
+        self.current_menu = Menu.API_CALL
+
+    def _call_api(self) -> None:
+        try:
+            validated_call = APICallReady.from_orm(self.selected_api_call)
+        except ValidationError as e:
+            self.err_console.print("api call not ready to send")
+            # err_console.print(e.errors())
+            __import__("pprint").pprint(e.errors())
+            return
+
+        try:
+            res = httpx.request(validated_call.method.value, validated_call.url)
+        except httpx.RequestError:
+            self.err_console.print("request error")
+            return
+        # except httpx.HTTPStatusError:
+        #     self.err_console.print("request failed with error code", res.status_code)
+        #
+        #     if res.content:
+        #         self.err_console.print(res.content)
+        #
+        #     return
+
+        print()
+        print(res.json())
+        print()
+
+    def _set_url(self) -> None:
+        if self.selected_api_call is None:
+            return
+
+        scheme = Prompt.ask("scheme", default="http")
+        host = Prompt.ask("host", default="localhost")
+        port = Prompt.ask("port", default="8000")
+        path = Prompt.ask("path", default="/")
+
+        url = AnyUrl.build(scheme=scheme, host=host, port=port, path=path)
+        api_call_crud.update(
+            self.session, db_obj=self.selected_api_call, obj_in=APICallUpdate(url=url)
+        )
+
+    def _set_method(self) -> None:
+        if self.selected_api_call is None:
+            return
+
+        method_input = Prompt.ask("method", default=Methods.GET.value)
+        method = Methods(method_input)
+        api_call_crud.update(
+            self.session,
+            db_obj=self.selected_api_call,
+            obj_in=APICallUpdate(method=method),
+        )
 
 
-def list_api_calls(session: Session) -> None:
-    # TODO: Pagination?
-    api_calls = api_call_crud.get_multi(session)
-
-    for api_call in api_calls:
-        print(f"{api_call.id}: {APICallGet.from_orm(api_call)}")
-
-    print("-------------------------------")
-
-
-# TODO: Wrapper around this?
-def open_api_call(session: Session) -> None:
-    list_api_calls(session)
-    api_call_id = Prompt.ask("provide api call id")
-
-    api_call = api_call_crud.get(session, id=api_call_id)
-
-    if api_call is None:
-        err_console.print("api call not found")
-        return
-
-    while True:
-        print(APICallGet.from_orm(api_call))
-
-        for num, option in API_CALL_ACTIONS.items():
-            print(f"{num}: [bold green]{option[1]}[/bold green]")
-
-        action = int(Prompt.ask("action"))
-
-        # TODO: this aint it chief
-        if action == 9:
-            break
-
-        API_CALL_ACTIONS[action][0](session, api_call)
-
-
-def call_api(_session: Session, api_call: APICallDB) -> None:
-    try:
-        validated_call = APICallReady.from_orm(api_call)
-    except ValidationError as e:
-        err_console.print("api call not ready to send")
-        # err_console.print(e.errors())
-        __import__("pprint").pprint(e.errors())
-        return
-
-    res = httpx.request(validated_call.method.value, validated_call.url)
-
-    try:
-        res.raise_for_status()
-    except httpx.HTTPStatusError:
-        err_console.print("request failed with error code", res.status_code)
-
-        if res.content:
-            err_console.print(res.content)
-
-        return
-
-    print()
-    print(res.json())
-    print()
-
-
-def set_url(session: Session, api_call: APICallDB) -> None:
-    # TODO: Defaults
-    scheme = Prompt.ask("scheme", default="http")
-    host = Prompt.ask("host", default="localhost")
-    port = Prompt.ask("port", default="8000")
-    path = Prompt.ask("path", default="/")
-
-    url = AnyUrl.build(scheme=scheme, host=host, port=port, path=path)
-    api_call_crud.update(session, db_obj=api_call, obj_in=APICallUpdate(url=url))
-
-
-def set_method(session, api_call: APICallDB) -> None:
-    method_input = Prompt.ask("method", default=Methods.GET.value)
-    method = Methods(method_input)
-    api_call_crud.update(session, db_obj=api_call, obj_in=APICallUpdate(method=method))
-
-
-API_CALL_ACTIONS: dict[int, tuple[Callable[[Session, APICallDB], None], str]] = {
-    1: (call_api, "call api"),
-    2: (set_url, "set url"),
-    3: (set_method, "set method"),
-    # TODO: Add param
-    # TODO: Add header
-    # TODO: Add json data creation thingy?
-}
-
-
-COMMAND_OPTIONS: dict[int, tuple[Callable[[Session], None], str]] = {
-    1: (create_api_call, "create new api call"),
-    2: (list_api_calls, "list api calls"),
-    3: (open_api_call, "open api call"),
-}
-
-console = Console()
-err_console = Console(stderr=True)
-
-
-def app(session: Session):
-    for num, option in COMMAND_OPTIONS.items():
-        print(f"{num}: [bold green]{option[1]}[/bold green]")
-
-    choise = int(Prompt.ask("choise"))
-
-    action, _ = COMMAND_OPTIONS[choise]
-
-    typer.clear()
-    action(session)
-    # COMMAND_OPTIONS[choise][0](session)
+class Menu(Enum):
+    MAIN = auto()
+    API_CALL = auto()
 
 
 def init(debug: bool = False):
@@ -143,8 +146,12 @@ def init(debug: bool = False):
     Base.metadata.create_all(engine)
 
     with Session(engine) as session:
-        while True:
-            app(session)
+        api_app = App(
+            session=session,
+            console=Console(),
+            err_console=Console(stderr=True),
+        )
+        api_app.run()
 
 
 if __name__ == "__main__":

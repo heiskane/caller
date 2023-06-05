@@ -132,10 +132,15 @@ class APICallMenu(AppMenu):
             # TODO: Set headers
             # TODO: Set params
             (self._list_responses, "list responses"),
+            (self._delete_call, "delete"),
             (self._exit, "back"),
         ]
 
     # TODO: Copy respone json to clipboard
+
+    def _delete_call(self) -> None:
+        api_call_crud.remove(self.session, obj=self.selected_api_call)
+        self._exit()
 
     def _pre_run(self) -> None:
         self.console.print(APICallGet.from_orm(self.selected_api_call))

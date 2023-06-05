@@ -13,6 +13,8 @@ from sqlalchemy import Enum, create_engine
 from sqlalchemy.orm import Session
 
 from caller.crud.api_calls import api_call_crud
+from caller.crud.headers import header_crud
+from caller.crud.parameters import parameter_crud
 from caller.crud.responses import response_crud
 from caller.db import APICall, Base
 from caller.enums import Method
@@ -22,6 +24,8 @@ from caller.schemas.api_calls import (
     APICallReady,
     APICallUpdate,
 )
+from caller.schemas.headers import HeaderCreate, HeaderGet
+from caller.schemas.parameters import ParameterCreate
 from caller.schemas.responses import ResponseCreate, ResponseGet
 
 
@@ -129,8 +133,8 @@ class APICallMenu(AppMenu):
             (self._set_url, "set url"),
             (self._set_method, "set method"),
             (self._set_content, "set content"),
-            # TODO: Set headers
-            # TODO: Set params
+            (self._add_header, "add header"),
+            (self._add_parameter, "add parameter"),
             (self._list_responses, "list responses"),
             (self._delete_call, "delete"),
             (self._exit, "back"),
@@ -138,12 +142,42 @@ class APICallMenu(AppMenu):
 
     # TODO: Copy respone json to clipboard
 
+    def _add_header(self) -> None:
+        key = Prompt.ask("key")
+        value = Prompt.ask("value")
+        header_crud.create(
+            self.session,
+            obj_in=HeaderCreate(
+                key=key, value=value, api_call_id=self.selected_api_call.id
+            ),
+        )
+
+    def _add_parameter(self) -> None:
+        key = Prompt.ask("key")
+        value = Prompt.ask("value")
+        parameter_crud.create(
+            self.session,
+            obj_in=ParameterCreate(
+                key=key, value=value, api_call_id=self.selected_api_call.id
+            ),
+        )
+
     def _delete_call(self) -> None:
         api_call_crud.remove(self.session, obj=self.selected_api_call)
         self._exit()
 
     def _pre_run(self) -> None:
         self.console.print(APICallGet.from_orm(self.selected_api_call))
+
+        if len(self.selected_api_call.headers) > 0:
+            self.console.print("HEADERS:")
+            for header in self.selected_api_call.headers:
+                self.console.print(HeaderGet.from_orm(header))
+
+        if len(self.selected_api_call.parameters) > 0:
+            self.console.print("PARAMS:")
+            for param in self.selected_api_call.parameters:
+                self.console.print(HeaderGet.from_orm(param))
 
     def _set_method(self) -> None:
         method_input = Prompt.ask("method", default=Method.GET.value)
@@ -182,10 +216,15 @@ class APICallMenu(AppMenu):
             __import__("pprint").pprint(e.errors())
             return
 
+        headers = {h.key: h.value for h in self.selected_api_call.headers}
+        params = {p.key: p.value for p in self.selected_api_call.parameters}
+
         try:
             res = httpx.request(
                 validated_call.method.value,
                 validated_call.url,
+                headers=headers,
+                params=params,
                 content=validated_call.content,
             )
         except httpx.RequestError:

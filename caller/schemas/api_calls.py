@@ -32,7 +32,6 @@ class APICallReady(APICallBase):
     id: int
     url: AnyUrl
     method: Method
-    content: Optional[str]
 
     class Config:
         orm_mode = True

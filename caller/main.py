@@ -8,7 +8,6 @@ import typer
 from pydantic import AnyUrl, ValidationError
 from rich import print
 from rich.console import Console
-from rich.json import JSON
 from rich.prompt import Prompt
 from sqlalchemy import Enum, create_engine
 from sqlalchemy.orm import Session
@@ -52,12 +51,6 @@ class AppMenu:
     def _pre_run(self) -> None:
         ...
 
-    # TODO: IS this a mistake?
-    # if i want to print_json instead?
-    # Or should json be printed atfer as a separate thing?
-    def _print_err(self, msg: str) -> None:
-        self.err_console.print(f"[red]ERROR: [bold]{msg}")
-
     def _exit(self) -> None:
         self.running = False
 
@@ -73,7 +66,7 @@ class AppMenu:
         choice = int(choice_str)
 
         if choice < 1 or choice > len(self.options):
-            self._print_err("invalid selection")
+            self.err_console.print("invalid selection")
             return None
 
         return choice
@@ -86,7 +79,7 @@ class MainMenu(AppMenu):
         super().__init__(session, console, err_console)
         self.options = [
             (self._create_api_call, "create new api call"),
-            (self._list_api_calls, "list api calls"),
+            # (self._list_api_calls, "list api calls"),
             (self._open_api_call, "open api call"),
         ]
 
@@ -111,9 +104,10 @@ class MainMenu(AppMenu):
         api_call_id = Prompt.ask("provide api call id")
 
         if (api_call := api_call_crud.get(self.session, id=api_call_id)) is None:
-            self._print_err("api call not found")
+            self.err_console.print("api call not found")
             return
 
+        # TODO: Create when initializing
         api_call_menu = APICallMenu(
             self.session, api_call, self.console, self.err_console
         )
@@ -135,6 +129,8 @@ class APICallMenu(AppMenu):
             (self._set_url, "set url"),
             (self._set_method, "set method"),
             (self._set_content, "set content"),
+            # TODO: Set headers
+            # TODO: Set params
             (self._list_responses, "list responses"),
             (self._exit, "back"),
         ]
@@ -177,7 +173,7 @@ class APICallMenu(AppMenu):
         try:
             validated_call = APICallReady.from_orm(self.selected_api_call)
         except ValidationError as e:
-            self._print_err("api call not ready to send")
+            self.err_console.print("api call not ready to send")
             __import__("pprint").pprint(e.errors())
             return
 
@@ -188,11 +184,8 @@ class APICallMenu(AppMenu):
                 content=validated_call.content,
             )
         except httpx.RequestError:
-            self._print_err("request error")
+            self.err_console.print("request error")
             return
-
-        if res.is_success is False:
-            ...
 
         self.console.print()
         self.console.print("[bold blue]STATUS CODE:", res.status_code)
@@ -238,7 +231,7 @@ def init(debug: bool = False) -> None:
         api_app = MainMenu(
             session=session,
             console=Console(),
-            err_console=Console(stderr=True),
+            err_console=Console(stderr=True, style="bold red"),
         )
         api_app.run()
 

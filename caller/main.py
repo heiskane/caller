@@ -215,7 +215,8 @@ class APICallMenu(AppMenu):
         for response in responses:
             print(f"{response.id}: {ResponseGet.from_orm(response)}")
             self.console.print("HEADERS:")
-            self.console.print(str(response.data))
+
+            self.console.print(response.data)
 
         print()
 

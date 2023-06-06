@@ -52,6 +52,7 @@ class AppMenu:
             action()
 
     # TODO: set pre print objects instead?
+    # or maybe allow children to put a callable into an attribute?
     def _pre_run(self) -> None:
         ...
 
@@ -111,7 +112,6 @@ class MainMenu(AppMenu):
             self.err_console.print("api call not found")
             return
 
-        # TODO: Create when initializing
         api_call_menu = APICallMenu(
             self.session, api_call, self.console, self.err_console
         )
@@ -134,6 +134,7 @@ class APICallMenu(AppMenu):
             (self._set_method, "set method"),
             (self._set_content, "set content"),
             (self._add_header, "add header"),
+            (self._delete_header, "delete header"),
             (self._add_parameter, "add parameter"),
             (self._list_responses, "list responses"),
             (self._delete_call, "delete"),
@@ -151,6 +152,14 @@ class APICallMenu(AppMenu):
                 key=key, value=value, api_call_id=self.selected_api_call.id
             ),
         )
+
+    def _delete_header(self) -> None:
+        header_id = Prompt.ask("header id")
+        if (db_header := header_crud.get(self.session, id=header_id)) is None:
+            self.err_console.print("header not found")
+            return
+
+        header_crud.remove(self.session, obj=db_header)
 
     def _add_parameter(self) -> None:
         key = Prompt.ask("key")
@@ -205,6 +214,9 @@ class APICallMenu(AppMenu):
         print()
         for response in responses:
             print(f"{response.id}: {ResponseGet.from_orm(response)}")
+            self.console.print("HEADERS:")
+            for header in response.headers:
+                self.console.print(HeaderGet.from_orm(header))
 
         print()
 
@@ -237,7 +249,8 @@ class APICallMenu(AppMenu):
         self.console.print_json(res.content.decode())
         self.console.print()
 
-        response_crud.create(
+        # TODO: Add used headers
+        resp_db = response_crud.create(
             self.session,
             obj_in=ResponseCreate(
                 timestamp=datetime.now(timezone.utc),
@@ -249,6 +262,9 @@ class APICallMenu(AppMenu):
                 api_call_id=validated_call.id,
             ),
         )
+
+        resp_db.headers = self.selected_api_call.headers
+        self.session.commit()
 
     def _set_url(self) -> None:
         scheme = Prompt.ask("scheme", default="http")

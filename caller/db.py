@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, Table
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from caller.enums import Method
@@ -25,6 +25,16 @@ class APICall(Base):
     parameters: Mapped[list["Parameter"]] = relationship(back_populates="api_call")
 
 
+req_headers = Table(
+    "req_headers",
+    Base.metadata,
+    Column("header_id", ForeignKey("headers.id"), primary_key=True),
+    Column("response_id", ForeignKey("responses.id"), primary_key=True),
+)
+
+
+# TODO: Make headers and params non modifyable
+# and create relation between responses and stuff?
 class Header(Base):
     __tablename__ = "headers"
 
@@ -32,8 +42,13 @@ class Header(Base):
     key: Mapped[str]
     value: Mapped[str]
 
+    # TODO: Make api_call relation optional and reuse table for response headers
     api_call_id: Mapped[int] = mapped_column(ForeignKey("api_calls.id"))
     api_call: Mapped[APICall] = relationship(back_populates="headers")
+
+    responses: Mapped[list["Response"]] = relationship(
+        secondary=req_headers, back_populates="headers"
+    )
 
 
 class Parameter(Base):
@@ -59,9 +74,13 @@ class Response(Base):
     url: Mapped[str]
     method: Mapped[Method]
 
-    # TODO: req headers
-    # TODO: resp header
+    # TODO: Do not use actual headers table for this
+    # so headers can be easily deleted from api api_calls
+    # without deleting history
+    # TODO: include resp headers aswell
+    headers: Mapped[list[Header]] = relationship(
+        secondary=req_headers, back_populates="responses"
+    )
 
     api_call_id: Mapped[int] = mapped_column(ForeignKey("api_calls.id"))
     api_call: Mapped[APICall] = relationship(back_populates="responses")
-    # TODO: Relations?

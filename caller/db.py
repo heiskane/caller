@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, Table
+from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from caller.enums import Method
@@ -46,10 +47,6 @@ class Header(Base):
     api_call_id: Mapped[int] = mapped_column(ForeignKey("api_calls.id"))
     api_call: Mapped[APICall] = relationship(back_populates="headers")
 
-    responses: Mapped[list["Response"]] = relationship(
-        secondary=req_headers, back_populates="headers"
-    )
-
 
 class Parameter(Base):
     __tablename__ = "parameters"
@@ -74,12 +71,8 @@ class Response(Base):
     url: Mapped[str]
     method: Mapped[Method]
 
-    # TODO: Do not use actual headers table for this
-    # so headers can be easily deleted from api api_calls
-    # without deleting history
-    # TODO: include resp headers aswell
-    headers: Mapped[list[Header]] = relationship(
-        secondary=req_headers, back_populates="responses"
+    data: Mapped[Optional[dict[str, dict[str, str]]]] = mapped_column(
+        JSON, nullable=True
     )
 
     api_call_id: Mapped[int] = mapped_column(ForeignKey("api_calls.id"))

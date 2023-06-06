@@ -6,6 +6,12 @@ from pydantic import AnyUrl, BaseModel, Field
 from caller.enums import Method
 
 
+class ResponseData(BaseModel):
+    req_headers: dict[str, str]
+    req_parameters: dict[str, str]
+    res_headers: dict[str, str]
+
+
 class ResponseBase(BaseModel):
     code: Optional[int]
     content: Annotated[Optional[str], Field()]

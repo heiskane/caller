@@ -26,7 +26,7 @@ from caller.schemas.api_calls import (
 )
 from caller.schemas.headers import HeaderCreate, HeaderGet
 from caller.schemas.parameters import ParameterCreate
-from caller.schemas.responses import ResponseCreate, ResponseGet
+from caller.schemas.responses import ResponseCreate, ResponseData, ResponseGet
 
 
 @dataclass
@@ -215,8 +215,7 @@ class APICallMenu(AppMenu):
         for response in responses:
             print(f"{response.id}: {ResponseGet.from_orm(response)}")
             self.console.print("HEADERS:")
-            for header in response.headers:
-                self.console.print(HeaderGet.from_orm(header))
+            self.console.print(str(response.data))
 
         print()
 
@@ -249,7 +248,6 @@ class APICallMenu(AppMenu):
         self.console.print_json(res.content.decode())
         self.console.print()
 
-        # TODO: Add used headers
         resp_db = response_crud.create(
             self.session,
             obj_in=ResponseCreate(
@@ -263,7 +261,10 @@ class APICallMenu(AppMenu):
             ),
         )
 
-        resp_db.headers = self.selected_api_call.headers
+        resp_data = ResponseData(
+            req_headers=headers, req_parameters=params, res_headers=dict(res.headers)
+        )
+        resp_db.data = resp_data.dict()
         self.session.commit()
 
     def _set_url(self) -> None:

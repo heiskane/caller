@@ -24,9 +24,9 @@ from caller.schemas.api_calls import (
     APICallReady,
     APICallUpdate,
 )
-from caller.schemas.headers import HeaderCreate, HeaderGet
+from caller.schemas.headers import HeaderCreate
 from caller.schemas.parameters import ParameterCreate
-from caller.schemas.responses import ResponseCreate, ResponseData, ResponseGet
+from caller.schemas.responses import ResponseCreate, ResponseData
 
 
 @dataclass
@@ -267,8 +267,7 @@ class APICallMenu(AppMenu):
                 url=validated_call.url,
                 code=res.status_code,
                 method=validated_call.method,
-                # TODO: Maybe keep it in bytes?
-                content=str(res.content),
+                content=res.content,
                 api_call_id=validated_call.id,
             ),
         )

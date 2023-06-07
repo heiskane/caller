@@ -14,7 +14,7 @@ class ResponseData(BaseModel):
 
 class ResponseBase(BaseModel):
     code: Optional[int]
-    content: Annotated[Optional[str], Field()]
+    content: Optional[bytes]
     url: Annotated[Optional[str], AnyUrl]
     method: Annotated[Optional[Method], Field()] = None
     api_call_id: Optional[int]

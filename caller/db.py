@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, Table
-from sqlalchemy.dialects.sqlite import JSON
+from sqlalchemy.dialects.sqlite import BLOB, JSON
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from caller.enums import Method
@@ -70,7 +70,7 @@ class Response(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
     code: Mapped[int]
-    content: Mapped[Optional[str]]
+    content: Mapped[Optional[bytes]]
     url: Mapped[str]
     method: Mapped[Method]
 
@@ -82,4 +82,12 @@ class Response(Base):
     api_call: Mapped[APICall] = relationship(back_populates="responses")
 
     def __str__(self) -> str:
-        return f"{self.timestamp}: code={self.code}, content={self.content}"
+        string = f"{self.timestamp}: id={self.id}, code={self.code}"
+        if self.content is not None:
+            trunc_content = (
+                (self.content.decode()[:50] + "...")
+                if len(self.content) > 75
+                else self.content.decode()
+            )
+            string += f", content={trunc_content}"
+        return string

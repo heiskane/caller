@@ -234,7 +234,9 @@ class APICallMenu(AppMenu):
             validated_call = APICallReady.from_orm(self.selected_api_call)
         except ValidationError as e:
             self.err_console.print("api call not ready to send")
-            __import__("pprint").pprint(e.errors())
+            for err in e.errors():
+                self.err_console.print(f'{err["loc"]}: {err["msg"]}')
+
             return
 
         headers = {h.key: h.value for h in self.selected_api_call.headers}

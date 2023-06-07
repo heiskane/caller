@@ -136,6 +136,7 @@ class APICallMenu(AppMenu):
             (self._add_header, "add header"),
             (self._delete_header, "delete header"),
             (self._add_parameter, "add parameter"),
+            (self._delete_parameter, "delete parameter"),
             (self._list_responses, "list responses"),
             (self._delete_call, "delete"),
             (self._exit, "back"),
@@ -171,22 +172,33 @@ class APICallMenu(AppMenu):
             ),
         )
 
+    def _delete_parameter(self) -> None:
+        param_id = Prompt.ask("param id")
+        if (db_param := parameter_crud.get(self.session, id=param_id)) is None:
+            self.err_console.print("param not found")
+            return
+
+        parameter_crud.remove(self.session, obj=db_param)
+
     def _delete_call(self) -> None:
         api_call_crud.remove(self.session, obj=self.selected_api_call)
         self._exit()
 
     def _pre_run(self) -> None:
-        self.console.print(APICallGet.from_orm(self.selected_api_call))
+        self.console.print(self.selected_api_call)
+        print()
 
         if len(self.selected_api_call.headers) > 0:
             self.console.print("HEADERS:")
             for header in self.selected_api_call.headers:
-                self.console.print(HeaderGet.from_orm(header))
+                self.console.print(f"{header.id}: {header.key}={header.value}")
 
+        print()
         if len(self.selected_api_call.parameters) > 0:
             self.console.print("PARAMS:")
             for param in self.selected_api_call.parameters:
-                self.console.print(HeaderGet.from_orm(param))
+                self.console.print(f"{param.id}: {param.key}={param.value}")
+        print()
 
     def _set_method(self) -> None:
         method_input = Prompt.ask("method", default=Method.GET.value)
@@ -213,10 +225,7 @@ class APICallMenu(AppMenu):
 
         print()
         for response in responses:
-            print(f"{response.id}: {ResponseGet.from_orm(response)}")
-            self.console.print("HEADERS:")
-
-            self.console.print(response.data)
+            self.console.print(response)
 
         print()
 

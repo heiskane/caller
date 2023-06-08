@@ -74,9 +74,7 @@ class Response(Base):
     url: Mapped[str]
     method: Mapped[Method]
 
-    data: Mapped[Optional[dict[str, dict[str, str]]]] = mapped_column(
-        JSON, nullable=True
-    )
+    data: Mapped[Optional[dict[str, dict[str, str]]]] = mapped_column(JSON)
 
     api_call_id: Mapped[int] = mapped_column(ForeignKey("api_calls.id"))
     api_call: Mapped[APICall] = relationship(back_populates="responses")

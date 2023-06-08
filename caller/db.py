@@ -49,8 +49,8 @@ class Header(Base):
     key: Mapped[str]
     value: Mapped[str]
 
-    api_call_id: Mapped[int] = mapped_column(ForeignKey("api_calls.id"))
-    api_call: Mapped[APICall] = relationship(back_populates="headers")
+    api_call_id: Mapped[Optional[int]] = mapped_column(ForeignKey("api_calls.id"))
+    api_call: Mapped[Optional[APICall]] = relationship(back_populates="headers")
 
 
 class Parameter(Base):

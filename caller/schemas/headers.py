@@ -4,15 +4,14 @@ from pydantic import BaseModel
 
 
 class HeaderBase(BaseModel):
-    key: Optional[str]
-    value: Optional[str]
-    api_call_id: Optional[int]
+    key: Optional[str] = None
+    value: Optional[str] = None
+    api_call_id: Optional[int] = None
 
 
 class HeaderCreate(HeaderBase):
     key: str
     value: str
-    api_call_id: int
 
 
 class HeaderUpdate(HeaderBase):

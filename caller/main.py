@@ -85,8 +85,17 @@ class MainMenu(AppMenu):
         self.options = [
             (self._create_api_call, "create new api call"),
             # (self._list_api_calls, "list api calls"),
+            (self._add_global_header, "add global headers"),
             (self._open_api_call, "open api call"),
         ]
+
+    def _add_global_header(self) -> None:
+        key = Prompt.ask("key")
+        value = Prompt.ask("value")
+        header_crud.create(
+            self.session,
+            obj_in=HeaderCreate(key=key, value=value),
+        )
 
     def _create_api_call(self) -> None:
         name = Prompt.ask("name")
@@ -193,6 +202,11 @@ class APICallMenu(AppMenu):
             for header in self.selected_api_call.headers:
                 self.console.print(f"{header.id}: {header.key}={header.value}")
 
+        if len(headers := header_crud.get_globals(self.session)) > 0:
+            self.console.print("GLOBAL HEADERS:")
+            for header in headers:
+                self.console.print(f"{header.id}: {header.key}={header.value}")
+
         print()
         if len(self.selected_api_call.parameters) > 0:
             self.console.print("PARAMS:")
@@ -241,6 +255,9 @@ class APICallMenu(AppMenu):
 
         headers = {h.key: h.value for h in self.selected_api_call.headers}
         params = {p.key: p.value for p in self.selected_api_call.parameters}
+
+        for g_header in header_crud.get_globals(self.session):
+            headers[g_header.key] = g_header.value
 
         try:
             res = httpx.request(

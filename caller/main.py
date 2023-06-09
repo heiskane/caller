@@ -298,7 +298,7 @@ class APICallMenu(AppMenu):
     def _set_url(self) -> None:
         scheme = Prompt.ask("scheme", default="http")
         host = Prompt.ask("host", default="localhost")
-        port = Prompt.ask("port", default="8000")
+        port = Prompt.ask("port", default="")
         path = Prompt.ask("path", default="/")
 
         url = AnyUrl.build(scheme=scheme, host=host, port=port, path=path)

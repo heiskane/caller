@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import auto
@@ -17,7 +18,7 @@ from caller.crud.headers import header_crud
 from caller.crud.parameters import parameter_crud
 from caller.crud.responses import response_crud
 from caller.db import APICall, Base
-from caller.enums import Method
+from caller.enums import Method, StrEnumLower
 from caller.schemas.api_calls import (
     APICallCreate,
     APICallGet,
@@ -141,7 +142,8 @@ class APICallMenu(AppMenu):
             (self._call_api, "call api"),
             (self._set_url, "set url"),
             (self._set_method, "set method"),
-            (self._set_content, "set content"),
+            (self._set_content, "set content raw"),
+            (self._add_json_content, "set content interactive"),
             (self._add_header, "add header"),
             (self._delete_header, "delete header"),
             (self._add_parameter, "add parameter"),
@@ -152,6 +154,11 @@ class APICallMenu(AppMenu):
         ]
 
     # TODO: Copy respone json to clipboard
+
+    def _add_json_content(self) -> None:
+        json_menu = JSONObjectMenu(self.session, self.console, self.err_console)
+        json_menu.run()
+        self.selected_api_call.content = json.dumps(json_menu.json_object)
 
     def _add_header(self) -> None:
         key = Prompt.ask("key")
@@ -307,9 +314,95 @@ class APICallMenu(AppMenu):
         )
 
 
+class JSONObjectMenu(AppMenu):
+    def __init__(
+        self,
+        session: Session,
+        console: Console,
+        err_console: Console,
+    ) -> None:
+        super().__init__(session, console, err_console)
+        self.json_object = {}
+        self.options = [
+            (self._add_key, "add key"),
+            (self._exit, "back"),
+        ]
+
+    def _add_key(self) -> None:
+        key = Prompt.ask("key")
+
+        val_type = Prompt.ask("value type", default=JsonValueType.STR.value)
+        if JsonValueType(val_type) == JsonValueType.STR:
+            val = Prompt.ask("value")
+            self.json_object[key] = val
+
+        if JsonValueType(val_type) == JsonValueType.INT:
+            val = Prompt.ask("value")
+            self.json_object[key] = int(val)
+
+        if JsonValueType(val_type) == JsonValueType.ARR:
+            list_menu = JSONArrayMenu(self.session, self.console, self.err_console)
+            list_menu.run()
+            self.json_object[key] = list_menu.json_list
+
+        if JsonValueType(val_type) == JsonValueType.OBJ:
+            object_menu = JSONObjectMenu(self.session, self.console, self.err_console)
+            object_menu.run()
+            self.json_object[key] = object_menu.json_object
+
+    def _pre_run(self) -> None:
+        self.console.print(self.json_object)
+
+
+class JSONArrayMenu(AppMenu):
+    def __init__(
+        self,
+        session: Session,
+        console: Console,
+        err_console: Console,
+    ) -> None:
+        super().__init__(session, console, err_console)
+        self.json_list = []
+        self.options = [
+            (self._add_value, "add value"),
+            (self._exit, "back"),
+        ]
+
+    def _add_value(self) -> None:
+        val_type = Prompt.ask("value type", default=JsonValueType.STR.value)
+        if JsonValueType(val_type) == JsonValueType.STR:
+            val = Prompt.ask("value")
+            self.json_list.append(val)
+
+        if JsonValueType(val_type) == JsonValueType.INT:
+            val = Prompt.ask("value")
+            self.json_list.append(int(val))
+
+        if JsonValueType(val_type) == JsonValueType.ARR:
+            list_menu = JSONArrayMenu(self.session, self.console, self.err_console)
+            list_menu.run()
+            self.json_list.append(list_menu.json_list)
+
+        if JsonValueType(val_type) == JsonValueType.OBJ:
+            object_menu = JSONObjectMenu(self.session, self.console, self.err_console)
+            object_menu.run()
+            self.json_list.append(object_menu.json_object)
+
+    def _pre_run(self) -> None:
+        self.console.print(self.json_list)
+
+
 class Menu(Enum):
     MAIN = auto()
     API_CALL = auto()
+
+
+class JsonValueType(StrEnumLower):
+    INT = auto()
+    STR = auto()
+    ARR = auto()
+    OBJ = auto()
+    # TODO: float
 
 
 def init(debug: bool = False) -> None:

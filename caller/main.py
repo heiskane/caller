@@ -331,21 +331,34 @@ class JSONObjectMenu(AppMenu):
     def _add_key(self) -> None:
         key = Prompt.ask("key")
 
-        val_type = Prompt.ask("value type", default=JsonValueType.STR.value)
-        if JsonValueType(val_type) == JsonValueType.STR:
+        val_type = None
+
+        while val_type is None:
+            try:
+                self.console.print(
+                    "Available types", list(JsonValueType._value2member_map_.keys())
+                )
+                val_type_input = Prompt.ask(
+                    "value type", default=JsonValueType.STR.value
+                )
+                val_type = JsonValueType(val_type_input)
+            except ValueError:
+                self.err_console.print("invalid value type")
+
+        if val_type == JsonValueType.STR:
             val = Prompt.ask("value")
             self.json_object[key] = val
 
-        if JsonValueType(val_type) == JsonValueType.INT:
+        if val_type == JsonValueType.INT:
             val = Prompt.ask("value")
             self.json_object[key] = int(val)
 
-        if JsonValueType(val_type) == JsonValueType.ARR:
+        if val_type == JsonValueType.ARR:
             list_menu = JSONArrayMenu(self.session, self.console, self.err_console)
             list_menu.run()
             self.json_object[key] = list_menu.json_list
 
-        if JsonValueType(val_type) == JsonValueType.OBJ:
+        if val_type == JsonValueType.OBJ:
             object_menu = JSONObjectMenu(self.session, self.console, self.err_console)
             object_menu.run()
             self.json_object[key] = object_menu.json_object
@@ -369,21 +382,30 @@ class JSONArrayMenu(AppMenu):
         ]
 
     def _add_value(self) -> None:
-        val_type = Prompt.ask("value type", default=JsonValueType.STR.value)
-        if JsonValueType(val_type) == JsonValueType.STR:
+        val_type = None
+        while val_type is None:
+            try:
+                val_type_input = Prompt.ask(
+                    "value type", default=JsonValueType.STR.value
+                )
+                val_type = JsonValueType(val_type_input)
+            except ValueError:
+                self.err_console.print("invalid value type")
+
+        if val_type == JsonValueType.STR:
             val = Prompt.ask("value")
             self.json_list.append(val)
 
-        if JsonValueType(val_type) == JsonValueType.INT:
+        if val_type == JsonValueType.INT:
             val = Prompt.ask("value")
             self.json_list.append(int(val))
 
-        if JsonValueType(val_type) == JsonValueType.ARR:
+        if val_type == JsonValueType.ARR:
             list_menu = JSONArrayMenu(self.session, self.console, self.err_console)
             list_menu.run()
             self.json_list.append(list_menu.json_list)
 
-        if JsonValueType(val_type) == JsonValueType.OBJ:
+        if val_type == JsonValueType.OBJ:
             object_menu = JSONObjectMenu(self.session, self.console, self.err_console)
             object_menu.run()
             self.json_list.append(object_menu.json_object)

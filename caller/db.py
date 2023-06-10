@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, Table
-from sqlalchemy.dialects.sqlite import BLOB, JSON
+from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from caller.enums import Method

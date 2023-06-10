@@ -5,11 +5,11 @@ from textual.binding import Binding
 from textual.message import Message
 from textual.widgets import Label, ListItem, ListView
 
-from caller.schemas.api_calls import APICallGet
+from caller.db import APICall
 
 
 class APICallListItem(ListItem):
-    def __init__(self, api_call: APICallGet) -> None:
+    def __init__(self, api_call: APICall) -> None:
         super().__init__()
         self.api_call = api_call
 

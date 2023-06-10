@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-from rich.json import JSON
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Container
 from textual.message import Message
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Input, Label
+from textual.widgets import Footer, Header, Input
 
 from caller.db import APICall
-from caller.schemas.api_calls import APICallCreate, APICallGet, APICallUpdate
-from caller.tui.widgets import APICallListItem, ListViewVim
+from caller.schemas.api_calls import APICallCreate, APICallUpdate
+from caller.tui.widgets import APICallListItem, APICallView, ListViewVim
 
 
 class APICallViewScreen(Screen):
@@ -23,10 +22,7 @@ class APICallViewScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield Container(
-            Label(JSON(str(APICallGet.from_orm(self.api_call).json()))),
-            id="api-call-container",
-        )
+        yield APICallView(self.api_call, id="api-call-container")
         yield Footer()
 
     class Update(Message):
@@ -37,6 +33,7 @@ class APICallViewScreen(Screen):
 
     @on(Input.Submitted, "#api-call-url")
     def set_url(self, event: Input.Submitted) -> None:
+        print(event)
         event.stop()
         self.post_message(self.Update(self.api_call, APICallUpdate(url=event.value)))
         event.input.remove()

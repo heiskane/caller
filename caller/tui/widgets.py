@@ -1,16 +1,20 @@
 from __future__ import annotations
 
+from rich.json import JSON
 from textual.app import ComposeResult
 from textual.binding import Binding
+from textual.containers import Container
 from textual.message import Message
+from textual.reactive import reactive
 from textual.widgets import Label, ListItem, ListView
 
 from caller.db import APICall
+from caller.schemas.api_calls import APICallGet
 
 
 class APICallListItem(ListItem):
-    def __init__(self, api_call: APICall) -> None:
-        super().__init__()
+    def __init__(self, api_call: APICall, id: str | None = None) -> None:
+        super().__init__(id=id)
         self.api_call = api_call
 
     def compose(self) -> ComposeResult:
@@ -32,3 +36,15 @@ class ListViewVim(ListView):
         @property
         def control(self) -> ListViewVim:
             return self.list_view
+
+
+class APICallView(Container):
+    def __init__(self, api_call: APICall, id: str | None = None) -> None:
+        super().__init__(id=id)
+        self.api_call = api_call
+
+    def compose(self) -> ComposeResult:
+        yield Container(
+            Label(f"name: {self.api_call.name}"),
+            Label(f"url: {str(self.api_call.url)}"),
+        )

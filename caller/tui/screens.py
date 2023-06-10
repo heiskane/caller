@@ -10,8 +10,14 @@ from textual.screen import Screen
 from textual.widgets import Footer, Header, Input, Label
 
 from caller.db import APICall
+from caller.main import MainMenu
 from caller.schemas.api_calls import APICallCreate, APICallReady, APICallUpdate
-from caller.tui.widgets import APICallListItem, APICallView, ListViewVim
+from caller.tui.widgets import (
+    APICallListItem,
+    APICallsMainContainer,
+    APICallView,
+    ListViewVim,
+)
 
 
 class APICallViewScreen(Screen):
@@ -70,10 +76,7 @@ class APICallListScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield Container(
-            ListViewVim(id="api-calls", *[APICallListItem(i) for i in self.api_calls]),
-            id="api-calls-container",
-        )
+        yield APICallsMainContainer(self.api_calls, id="api-calls-main-container")
         yield Footer()
 
     class Create(Message):
@@ -85,6 +88,15 @@ class APICallListScreen(Screen):
         input_widget = Input(id="api-call-name", placeholder="Name")
         self.query_one("#api-calls-container").mount(input_widget)
         input_widget.focus()
+
+    @on(ListViewVim.Highlighted)
+    def do_stuff(self, event: ListViewVim.Highlighted) -> None:
+        api_call_view = self.query_one("#api-call-details-side", APICallView)
+        if event.item is None:
+            return
+
+        api_call_view.api_call = event.item.api_call
+        api_call_view.update_values()
 
     @on(ListViewVim.Selected, "#api-calls")
     def open_api_call(self, event: ListViewVim.Selected) -> None:

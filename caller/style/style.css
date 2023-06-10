@@ -1,0 +1,23 @@
+#api-calls-main-container {
+    layout: grid;
+    grid-size: 2;
+    grid-columns: 1fr 2fr;
+}
+
+#api-calls-container {
+    border: lightblue;
+}
+
+#api-call-details-side {
+    border: lightblue;
+}
+
+APICallListItem {
+    padding: 0 1;
+    background: rgba(0,0,0,0);
+
+}
+
+ListViewVim:focus > APICallListItem.--highlight {
+    background: $accent;
+}

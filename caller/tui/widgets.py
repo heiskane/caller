@@ -9,6 +9,19 @@ from textual.widgets import Label, ListItem, ListView
 from caller.db import APICall
 
 
+class APICallsMainContainer(Container):
+    def __init__(self, api_calls: list[APICall], id: str | None = None) -> None:
+        super().__init__(id=id)
+        self.api_calls = api_calls
+
+    def compose(self) -> ComposeResult:
+        yield Container(
+            ListViewVim(id="api-calls", *[APICallListItem(i) for i in self.api_calls]),
+            id="api-calls-container",
+        )
+        yield APICallView(self.api_calls[0], id="api-call-details-side")
+
+
 class APICallListItem(ListItem):
     def __init__(self, api_call: APICall, id: str | None = None) -> None:
         super().__init__(id=id)
@@ -29,6 +42,18 @@ class ListViewVim(ListView):
             super().__init__()
             self.list_view: ListViewVim = list_view
             self.item: APICallListItem = item
+
+        @property
+        def control(self) -> ListViewVim:
+            return self.list_view
+
+    class Highlighted(Message, bubble=True):
+        def __init__(
+            self, list_view: ListViewVim, item: APICallListItem | None
+        ) -> None:
+            super().__init__()
+            self.list_view: ListViewVim = list_view
+            self.item: APICallListItem | None = item
 
         @property
         def control(self) -> ListViewVim:

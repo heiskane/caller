@@ -19,10 +19,11 @@ class MainApp(App):
     BINDINGS = [
         Binding("q", "quit", "Quit"),
     ]
-    session: Session
 
-    def __init__(self, session: Session):
-        super().__init__()
+    CSS_PATH = "style/style.css"
+
+    def __init__(self, session: Session, watch_css: bool = False):
+        super().__init__(watch_css=watch_css)
         self.session = session
 
     def on_mount(self) -> None:
@@ -64,11 +65,11 @@ class MainApp(App):
             content=validated_call.content,
         )
 
-        self.query_one("#api-call-response", Label).update(str(res.json()))
+        self.query_one("#api-call-response", Label).update(str(res.content))
 
 
 def run_tui_app(session: Session) -> None:
-    app = MainApp(session)
+    app = MainApp(session, watch_css=True)
     app.run()
 
 

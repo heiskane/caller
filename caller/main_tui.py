@@ -8,7 +8,7 @@ from textual.binding import Binding
 
 from caller.crud import api_call_crud
 from caller.db import Base
-from caller.tui.screens import APICallListScreen
+from caller.tui.screens import APICallListScreen, APICallViewScreen
 from caller.tui.widgets import APICallListItem, ListViewVim
 
 
@@ -29,10 +29,16 @@ class MainApp(App):
     def action_quit(self) -> None:
         self.exit()
 
-    @on(APICallListScreen.APICallCreate)
-    def create_api_call(self, event: APICallListScreen.APICallCreate) -> None:
+    @on(APICallListScreen.Create)
+    def create_api_call(self, event: APICallListScreen.Create) -> None:
         db_api_call = api_call_crud.create(self.session, obj_in=event.api_call)
         self.query_one("#api-calls", ListViewVim).append(APICallListItem(db_api_call))
+
+    @on(APICallViewScreen.Update)
+    def update_api_call(self, event: APICallViewScreen.Update) -> None:
+        # TODO: somehow update existing object in the list
+        # query for individial item and update that perhaps?
+        api_call_crud.update(self.session, db_obj=event.db_obj, obj_in=event.obj_in)
 
 
 def run_tui_app(session: Session) -> None:

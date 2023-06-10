@@ -6,10 +6,10 @@ from caller.enums import Method
 
 
 class APICallBase(BaseModel):
-    name: Annotated[Optional[str], Field()] = None
+    name: Optional[str] = None
     url: Annotated[Optional[str], AnyUrl] = None
     method: Annotated[Optional[Method], Field()] = None
-    content: Annotated[Optional[str], Field()] = None
+    content: Optional[str] = None
     # headers: Optional[dict] = Field(default=None)
 
 
@@ -23,6 +23,7 @@ class APICallUpdate(APICallBase):
 
 class APICallGet(APICallBase):
     id: int
+    name: str
 
     class Config:
         orm_mode = True

@@ -1,20 +1,25 @@
 from __future__ import annotations
 
+import httpx
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Container
 from textual.message import Message
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Input
+from textual.widgets import Footer, Header, Input, Label
 
 from caller.db import APICall
-from caller.schemas.api_calls import APICallCreate, APICallUpdate
+from caller.schemas.api_calls import APICallCreate, APICallReady, APICallUpdate
 from caller.tui.widgets import APICallListItem, APICallView, ListViewVim
 
 
 class APICallViewScreen(Screen):
-    BINDINGS = [Binding("b", "exit", "exit"), Binding("1", "set_url", "set url")]
+    BINDINGS = [
+        Binding("b", "exit", "exit"),
+        Binding("1", "set_url", "set url"),
+        Binding("enter", "call_api", "call api"),
+    ]
 
     def __init__(self, api_call: APICall) -> None:
         super().__init__()
@@ -33,7 +38,6 @@ class APICallViewScreen(Screen):
 
     @on(Input.Submitted, "#api-call-url")
     def set_url(self, event: Input.Submitted) -> None:
-        print(event)
         event.stop()
         self.post_message(self.Update(self.api_call, APICallUpdate(url=event.value)))
         event.input.remove()
@@ -42,6 +46,14 @@ class APICallViewScreen(Screen):
         input_widget = Input(id="api-call-url", placeholder="url")
         self.query_one("#api-call-container").mount(input_widget)
         input_widget.focus()
+
+    class CallAPI(Message):
+        def __init__(self, api_call: APICall) -> None:
+            super().__init__()
+            self.api_call = api_call
+
+    def action_call_api(self) -> None:
+        self.post_message(self.CallAPI(self.api_call))
 
     def action_exit(self) -> None:
         self.app.pop_screen()

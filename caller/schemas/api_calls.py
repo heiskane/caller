@@ -1,13 +1,13 @@
 from typing import Annotated, Optional
 
-from pydantic import AnyUrl, BaseModel, Field
+from pydantic import AnyHttpUrl, BaseModel, Field
 
 from caller.enums import Method
 
 
 class APICallBase(BaseModel):
     name: Optional[str] = None
-    url: Annotated[Optional[str], AnyUrl] = None
+    url: Annotated[Optional[str], AnyHttpUrl] = None
     method: Annotated[Optional[Method], Field()] = None
     content: Optional[str] = None
     # headers: Optional[dict] = Field(default=None)
@@ -31,7 +31,7 @@ class APICallGet(APICallBase):
 
 class APICallReady(APICallBase):
     id: int
-    url: AnyUrl
+    url: AnyHttpUrl
     method: Method
 
     class Config:

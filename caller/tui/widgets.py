@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-from rich.json import JSON
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Container
 from textual.message import Message
-from textual.reactive import reactive
 from textual.widgets import Label, ListItem, ListView
 
 from caller.db import APICall
-from caller.schemas.api_calls import APICallGet
 
 
 class APICallListItem(ListItem):
@@ -45,6 +42,18 @@ class APICallView(Container):
 
     def compose(self) -> ComposeResult:
         yield Container(
-            Label(f"name: {self.api_call.name}"),
-            Label(f"url: {str(self.api_call.url)}"),
+            Label(f"name: {self.api_call.name}", id="selected-api-call-name"),
+            Label(f"url: {str(self.api_call.url)}", id="selected-api-call-url"),
+            Label(
+                f"method: {self.api_call.method.value}", id="selected-api-call-method"
+            ),
+            Label("", id="api-call-response"),
+        )
+
+    def update_values(self) -> None:
+        self.query_one("#selected-api-call-name", Label).update(
+            f"name: {self.api_call.name}"
+        )
+        self.query_one("#selected-api-call-url", Label).update(
+            f"url: {str(self.api_call.url)}"
         )

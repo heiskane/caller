@@ -17,7 +17,7 @@ class APICall(Base):
 
     name: Mapped[str]
     url: Mapped[Optional[str]]
-    method: Mapped[Optional[Method]] = mapped_column(Enum(Method), default=Method.GET)
+    method: Mapped[Method] = mapped_column(Enum(Method), default=Method.GET)
     content: Mapped[Optional[str]]
 
     responses: Mapped[list["Response"]] = relationship(back_populates="api_call")

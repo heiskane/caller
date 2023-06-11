@@ -12,7 +12,7 @@ from caller.crud import api_call_crud, header_crud
 from caller.db import Base
 from caller.schemas.api_calls import APICallReady
 from caller.tui.screens import APICallListScreen
-from caller.tui.widgets import APICallListItem, APICallView, ListViewVim
+from caller.tui.widgets import APICallListItem, ListViewVim
 
 
 class MainApp(App):
@@ -53,25 +53,25 @@ class MainApp(App):
         for key, value in event.obj_in.dict(exclude_unset=True).items():
             setattr(api_call_list_item, key, value)
 
-    # @on(APICallViewScreen.CallAPI)
-    # def call_api(self, event: APICallViewScreen.CallAPI) -> None:
-    #     headers = {h.key: h.value for h in event.api_call.headers}
-    #     params = {p.key: p.value for p in event.api_call.parameters}
-    #
-    #     for g_header in header_crud.get_globals(self.session):
-    #         headers[g_header.key] = g_header.value
-    #
-    #     validated_call = APICallReady.from_orm(event.api_call)
-    #
-    #     res = httpx.request(
-    #         validated_call.method.value,
-    #         validated_call.url,
-    #         headers=headers,
-    #         params=params,
-    #         content=validated_call.content,
-    #     )
-    #
-    #     self.query_one("#api-call-response", Label).update(str(res.content))
+    @on(APICallListScreen.CallAPI)
+    def call_api(self, event: APICallListScreen.CallAPI) -> None:
+        headers = {h.key: h.value for h in event.api_call.headers}
+        params = {p.key: p.value for p in event.api_call.parameters}
+
+        for g_header in header_crud.get_globals(self.session):
+            headers[g_header.key] = g_header.value
+
+        validated_call = APICallReady.from_orm(event.api_call)
+
+        res = httpx.request(
+            validated_call.method.value,
+            validated_call.url,
+            headers=headers,
+            params=params,
+            content=validated_call.content,
+        )
+
+        self.query_one("#api-call-response", Label).update(str(res.content))
 
 
 def run_tui_app(session: Session) -> None:

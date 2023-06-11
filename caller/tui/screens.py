@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
+from textual.containers import Container
+from textual.css.query import NoMatches
 from textual.message import Message
 from textual.screen import Screen
-from textual.validation import ValidationResult
-from textual.widgets import Footer, Header, Input
+from textual.widgets import Footer, Header, Input, Label
 
 from caller.db import APICall
 from caller.schemas.api_calls import APICallCreate, APICallUpdate
@@ -50,6 +50,11 @@ class APICallListScreen(Screen):
             self.container = container
             self.obj_in = obj_in
             self.db_obj = db_obj
+
+    class CallAPI(Message):
+        def __init__(self, api_call: APICall) -> None:
+            super().__init__()
+            self.api_call = api_call
 
     def action_create_api_call(self) -> None:
         input_widget = Input(id="api-call-name", placeholder="Name")
@@ -102,11 +107,21 @@ class APICallListScreen(Screen):
         api_call_view.api_call = event.item.api_call
         api_call_view.update_values()
 
+        try:
+            self.query_one("#api-response-container", Container).remove()
+        except NoMatches:
+            pass
+
     @on(ListViewVim.Selected, "#api-calls")
     def open_api_call(self, event: ListViewVim.Selected) -> None:
         # TODO: Call API
         # self.app.push_screen(APICallViewScreen(event.item.api_call))
-        ...
+        try:
+            self.query_one("#api-response-container", Container)
+        except NoMatches:
+            self.query_one("#api-calls-main-container", Container).mount(
+                Container(Label("hello world"), id="api-response-container")
+            )
 
     @on(Input.Submitted, "#api-call-name")
     def create_api_call(self, event: Input.Submitted) -> None:

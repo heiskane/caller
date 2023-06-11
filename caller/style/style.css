@@ -4,11 +4,16 @@
     grid-columns: 1fr 2fr;
 }
 
-#api-calls-container {
+#api-call-side-container {
     border: lightblue;
 }
 
-#api-call-details-side {
+#api-calls-container {
+    row-span: 2;
+    border: lightblue;
+}
+
+#api-response-container {
     border: lightblue;
 }
 

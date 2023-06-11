@@ -97,6 +97,7 @@ class APICallView(Container):
                 f"method: {self.api_call.method.value}", id="selected-api-call-method"
             ),
             Label("", id="api-call-response"),
+            id="api-call-side-container",
         )
 
     # TODO: Do this reactively?

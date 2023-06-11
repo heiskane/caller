@@ -43,7 +43,7 @@ class APICallListItem(ListItem):
         self.api_call_url = api_call.url
 
     def render(self) -> str:
-        return f"{self.name} - {self.api_call_method} - {self.api_call_url}"
+        return f"{self.api_call_name} - {self.api_call_method} - {self.api_call_url}"
 
 
 class ListViewVim(ListView):

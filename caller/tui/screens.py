@@ -37,8 +37,11 @@ class APICallViewScreen(Screen):
         yield Footer()
 
     class Update(Message):
-        def __init__(self, db_obj: APICall, obj_in: APICallUpdate) -> None:
+        def __init__(
+            self, container: APICallView, db_obj: APICall, obj_in: APICallUpdate
+        ) -> None:
             super().__init__()
+            self.container = container
             self.obj_in = obj_in
             self.db_obj = db_obj
 
@@ -47,7 +50,8 @@ class APICallViewScreen(Screen):
         event.stop()
         api_call_update = APICallUpdate()
         setattr(api_call_update, event.input.attribute, event.value)
-        self.post_message(self.Update(self.api_call, api_call_update))
+        api_call_view = self.query_one("#api-call-container", APICallView)
+        self.post_message(self.Update(api_call_view, self.api_call, api_call_update))
         event.input.remove()
 
     def action_set_url(self) -> None:

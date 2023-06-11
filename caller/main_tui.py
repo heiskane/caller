@@ -43,14 +43,16 @@ class MainApp(App):
         api_call = api_call_crud.update(
             self.session, db_obj=event.db_obj, obj_in=event.obj_in
         )
-        api_call_container = self.query_one("#api-call-container", APICallView)
-        api_call_container.api_call = api_call
-        api_call_container.update_values()
+        event.container.api_call = api_call
+        event.container.update_values()
 
         self.app.pop_screen()
-        self.app.query_one(
+
+        api_call_list_item = self.app.query_one(
             f"#api-call-list-item-{api_call.id}", APICallListItem
-        ).api_call_url = api_call.url
+        )
+        for key, value in event.obj_in.dict(exclude_unset=True).items():
+            setattr(api_call_list_item, key, value)
 
     @on(APICallViewScreen.CallAPI)
     def call_api(self, event: APICallViewScreen.CallAPI) -> None:

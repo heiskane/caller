@@ -53,7 +53,7 @@ class APICallViewScreen(Screen):
     def action_set_url(self) -> None:
         input_widget = ModifyAPICallInput(
             id="api-call-update",
-            value="http://localhost:8000/",
+            value=self.api_call.url,
             attribute="url",
             placeholder="url",
         )

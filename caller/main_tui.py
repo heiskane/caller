@@ -47,6 +47,11 @@ class MainApp(App):
         api_call_container.api_call = api_call
         api_call_container.update_values()
 
+        self.app.pop_screen()
+        self.app.query_one(
+            f"#api-call-list-item-{api_call.id}", APICallListItem
+        ).api_call_url = api_call.url
+
     @on(APICallViewScreen.CallAPI)
     def call_api(self, event: APICallViewScreen.CallAPI) -> None:
         headers = {h.key: h.value for h in event.api_call.headers}

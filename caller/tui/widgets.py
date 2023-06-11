@@ -6,10 +6,12 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Container
 from textual.message import Message
+from textual.reactive import reactive
 from textual.validation import ValidationResult
 from textual.widgets import Input, Label, ListItem, ListView
 
 from caller.db import APICall
+from caller.enums import Method
 
 
 class APICallsMainContainer(Container):
@@ -19,21 +21,29 @@ class APICallsMainContainer(Container):
 
     def compose(self) -> ComposeResult:
         yield Container(
-            ListViewVim(id="api-calls", *[APICallListItem(i) for i in self.api_calls]),
+            ListViewVim(
+                id="api-calls",
+                *[APICallListItem(i) for i in self.api_calls],
+            ),
             id="api-calls-container",
         )
         yield APICallView(self.api_calls[0], id="api-call-details-side")
 
 
 class APICallListItem(ListItem):
-    def __init__(self, api_call: APICall, id: str | None = None) -> None:
-        super().__init__(id=id)
-        self.api_call = api_call
+    api_call_name = reactive("default")
+    api_call_method = reactive(Method.GET.value)
+    api_call_url = reactive("default")
 
-    def compose(self) -> ComposeResult:
-        yield Label(
-            f"{self.api_call.name} - {self.api_call.method.value} - {self.api_call.url}"
-        )
+    def __init__(self, api_call: APICall) -> None:
+        super().__init__(id=f"api-call-list-item-{api_call.id}")
+        self.api_call = api_call
+        self.api_call_name = api_call.name
+        self.api_call_method = api_call.method.value
+        self.api_call_url = api_call.url
+
+    def render(self) -> str:
+        return f"{self.name} - {self.api_call_method} - {self.api_call_url}"
 
 
 class ListViewVim(ListView):

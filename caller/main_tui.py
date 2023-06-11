@@ -47,6 +47,7 @@ class MainApp(App):
 
         # highlight now api call
         api_call_list.index = len(api_call_list._nodes) - 1
+
     @on(APICallListScreen.Delete)
     def delete_api_call(self, event: APICallListScreen.Delete) -> None:
         api_call_crud.remove(self.session, obj=event.api_call)

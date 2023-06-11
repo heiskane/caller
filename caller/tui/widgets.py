@@ -30,15 +30,15 @@ class APICallsMainContainer(Container):
 
 
 class APICallListItem(ListItem):
-    api_call_name = reactive("default")
+    name = reactive("default")
 
     def __init__(self, api_call: APICall) -> None:
         super().__init__(id=f"api-call-list-item-{api_call.id}")
         self.api_call = api_call
-        self.api_call_name = self.api_call.name
+        self.name = self.api_call.name
 
     def render(self) -> str:
-        return f"{self.api_call_name}"
+        return f"{self.name}"
 
 
 class ListViewVim(ListView):

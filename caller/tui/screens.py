@@ -147,7 +147,7 @@ class APICallListScreen(Screen):
             pass
 
     @on(ListViewVim.Selected, "#api-calls")
-    def open_api_call(self, event: ListViewVim.Selected) -> None:
+    def call_api(self) -> None:
         api_call_list_item = self.query_one("#api-calls", ListViewVim).highlighted_child
         if api_call_list_item is None:
             return None

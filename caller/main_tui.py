@@ -41,7 +41,12 @@ class MainApp(App):
     def create_api_call(self, event: APICallListScreen.Create) -> None:
         db_api_call = api_call_crud.create(self.session, obj_in=event.api_call)
         self.query_one("#api-calls", ListViewVim).append(APICallListItem(db_api_call))
+        api_call_list = self.query_one("#api-calls", ListViewVim)
+        if api_call_list.index is None:
+            return
 
+        # highlight now api call
+        api_call_list.index = len(api_call_list._nodes) - 1
     @on(APICallListScreen.Delete)
     def delete_api_call(self, event: APICallListScreen.Delete) -> None:
         api_call_crud.remove(self.session, obj=event.api_call)

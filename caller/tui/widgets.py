@@ -74,6 +74,15 @@ class ListViewVim(ListView):
         def control(self) -> ListViewVim:
             return self.list_view
 
+    @property
+    def highlighted_child(self) -> APICallListItem | None:
+        if self.index is not None and 0 <= self.index < len(self._nodes):
+            list_item = self._nodes[self.index]
+            assert isinstance(list_item, APICallListItem)
+            return list_item
+        else:
+            return None
+
 
 class APICallView(Container):
     def __init__(self, api_call: APICall, id: str | None = None) -> None:

@@ -42,6 +42,13 @@ class MainApp(App):
         db_api_call = api_call_crud.create(self.session, obj_in=event.api_call)
         self.query_one("#api-calls", ListViewVim).append(APICallListItem(db_api_call))
 
+    @on(APICallListScreen.Delete)
+    def delete_api_call(self, event: APICallListScreen.Delete) -> None:
+        api_call_crud.remove(self.session, obj=event.api_call)
+        self.app.query_one(
+            f"#api-call-list-item-{event.api_call.id}", APICallListItem
+        ).remove()
+
     @on(APICallListScreen.Update)
     def update_api_call(self, event: APICallListScreen.Update) -> None:
         print("UPDATING:", event.obj_in)

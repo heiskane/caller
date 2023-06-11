@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from operator import index
+
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -26,6 +28,7 @@ class APICallListScreen(Screen):
         Binding("G", "go_bottom", "Go to bottom"),
         Binding("s", "set_url", "Set url"),
         Binding("r", "rename", "Rename"),
+        Binding("d", "delete_api_call", "Delete"),
     ]
 
     def __init__(self, api_calls: list[APICall]) -> None:
@@ -39,6 +42,11 @@ class APICallListScreen(Screen):
 
     class Create(Message):
         def __init__(self, api_call: APICallCreate) -> None:
+            super().__init__()
+            self.api_call = api_call
+
+    class Delete(Message):
+        def __init__(self, api_call: APICall) -> None:
             super().__init__()
             self.api_call = api_call
 
@@ -60,6 +68,19 @@ class APICallListScreen(Screen):
         input_widget = Input(id="api-call-name", placeholder="Name")
         self.query_one("#api-call-details-side").mount(input_widget)
         input_widget.focus()
+
+    def action_delete_api_call(self) -> None:
+        api_call_list_item = self.query_one("#api-calls", ListViewVim).highlighted_child
+        if api_call_list_item is None:
+            return None
+
+        self.post_message(self.Delete(api_call_list_item.api_call))
+
+        api_call_list = self.query_one("#api-calls", ListViewVim)
+        if api_call_list.index is None:
+            return
+
+        api_call_list.index -= 1
 
     def action_go_bottom(self) -> None:
         self.query_one("#api-calls", ListViewVim).index = len(self.api_calls) - 1

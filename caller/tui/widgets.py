@@ -11,7 +11,6 @@ from textual.validation import ValidationResult
 from textual.widgets import Input, Label, ListItem, ListView
 
 from caller.db import APICall
-from caller.enums import Method
 
 
 class APICallsMainContainer(Container):

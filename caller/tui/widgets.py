@@ -31,19 +31,15 @@ class APICallsMainContainer(Container):
 
 
 class APICallListItem(ListItem):
-    name = reactive("default")
-    method = reactive(Method.GET.value)
-    url = reactive("default")
+    api_call_name = reactive("default")
 
     def __init__(self, api_call: APICall) -> None:
         super().__init__(id=f"api-call-list-item-{api_call.id}")
         self.api_call = api_call
-        self.name = api_call.name
-        self.method = api_call.method.value
-        self.url = api_call.url
+        self.api_call_name = self.api_call.name
 
     def render(self) -> str:
-        return f"{self.name} - {self.method} - {self.url}"
+        return f"{self.api_call_name}"
 
 
 class ListViewVim(ListView):

@@ -7,7 +7,7 @@ from textual.containers import Container
 from textual.css.query import NoMatches
 from textual.message import Message
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Input, Label
+from textual.widgets import Footer, Header, Input
 
 from caller.db import APICall
 from caller.schemas.api_calls import APICallCreate, APICallUpdate
@@ -25,6 +25,7 @@ class APICallListScreen(Screen):
         Binding("g", "go_top", "Go to top"),
         Binding("G", "go_bottom", "Go to bottom"),
         Binding("s", "set_url", "Set url"),
+        Binding("r", "rename", "Rename"),
     ]
 
     def __init__(self, api_calls: list[APICall]) -> None:
@@ -76,6 +77,19 @@ class APICallListScreen(Screen):
             value=api_call_list_item.api_call.url,
             attribute="url",
             placeholder="url",
+        )
+        self.query_one("#api-call-details-side").mount(input_widget)
+        input_widget.focus()
+
+    def action_rename(self) -> None:
+        api_call_list_item = self.query_one("#api-calls", ListViewVim).highlighted_child
+        if api_call_list_item is None:
+            return None
+
+        input_widget = ModifyAPICallInput(
+            id="api-call-update",
+            attribute="name",
+            placeholder="name",
         )
         self.query_one("#api-call-details-side").mount(input_widget)
         input_widget.focus()

@@ -1,16 +1,20 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import httpx
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from textual import on
 from textual.app import App
 from textual.binding import Binding
+from textual.containers import Container
 from textual.widgets import Label
 
-from caller.crud import api_call_crud, header_crud
+from caller.crud import api_call_crud, header_crud, response_crud
 from caller.db import Base
 from caller.schemas.api_calls import APICallReady
+from caller.schemas.responses import ResponseCreate
 from caller.tui.screens import APICallListScreen
 from caller.tui.widgets import APICallListItem, ListViewVim
 
@@ -71,7 +75,21 @@ class MainApp(App):
             content=validated_call.content,
         )
 
-        self.query_one("#api-call-response", Label).update(str(res.content))
+        resp_db = response_crud.create(
+            self.session,
+            obj_in=ResponseCreate(
+                timestamp=datetime.now(timezone.utc),
+                url=validated_call.url,
+                code=res.status_code,
+                method=validated_call.method,
+                content=res.content,
+                api_call_id=validated_call.id,
+            ),
+        )
+        # TODO: Static reactive response widget
+        self.query_one("#api-response-container", Container).mount(
+            Label(str(res.json()))
+        )
 
 
 def run_tui_app(session: Session) -> None:

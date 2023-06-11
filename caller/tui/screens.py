@@ -1,22 +1,22 @@
 from __future__ import annotations
 
-import httpx
+from dataclasses import dataclass
+
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Container
 from textual.message import Message
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Input, Label
+from textual.validation import ValidationResult
+from textual.widgets import Footer, Header, Input
 
 from caller.db import APICall
-from caller.main import MainMenu
-from caller.schemas.api_calls import APICallCreate, APICallReady, APICallUpdate
+from caller.schemas.api_calls import APICallCreate, APICallUpdate
 from caller.tui.widgets import (
-    APICallListItem,
     APICallsMainContainer,
     APICallView,
     ListViewVim,
+    ModifyAPICallInput,
 )
 
 
@@ -42,14 +42,21 @@ class APICallViewScreen(Screen):
             self.obj_in = obj_in
             self.db_obj = db_obj
 
-    @on(Input.Submitted, "#api-call-url")
-    def set_url(self, event: Input.Submitted) -> None:
+    @on(ModifyAPICallInput.Submitted, "#api-call-update")
+    def update_api_call(self, event: ModifyAPICallInput.Submitted) -> None:
         event.stop()
-        self.post_message(self.Update(self.api_call, APICallUpdate(url=event.value)))
+        api_call_update = APICallUpdate()
+        setattr(api_call_update, event.input.attribute, event.value)
+        self.post_message(self.Update(self.api_call, api_call_update))
         event.input.remove()
 
     def action_set_url(self) -> None:
-        input_widget = Input(id="api-call-url", placeholder="url")
+        input_widget = ModifyAPICallInput(
+            id="api-call-update",
+            value="http://localhost:8000/",
+            attribute="url",
+            placeholder="url",
+        )
         self.query_one("#api-call-container").mount(input_widget)
         input_widget.focus()
 
@@ -68,6 +75,8 @@ class APICallViewScreen(Screen):
 class APICallListScreen(Screen):
     BINDINGS = [
         Binding("c", "create_api_call", "Add API call"),
+        Binding("g", "go_top", "Go to top"),
+        Binding("G", "go_bottom", "Go to bottom"),
     ]
 
     def __init__(self, api_calls: list[APICall]) -> None:
@@ -89,8 +98,14 @@ class APICallListScreen(Screen):
         self.query_one("#api-calls-container").mount(input_widget)
         input_widget.focus()
 
+    def action_go_bottom(self) -> None:
+        self.query_one("#api-calls", ListViewVim).index = len(self.api_calls) - 1
+
+    def action_go_top(self) -> None:
+        self.query_one("#api-calls", ListViewVim).index = 0
+
     @on(ListViewVim.Highlighted)
-    def do_stuff(self, event: ListViewVim.Highlighted) -> None:
+    def display_api_call_info(self, event: ListViewVim.Highlighted) -> None:
         api_call_view = self.query_one("#api-call-details-side", APICallView)
         if event.item is None:
             return

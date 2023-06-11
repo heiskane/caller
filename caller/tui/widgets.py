@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Container
 from textual.message import Message
-from textual.widgets import Label, ListItem, ListView
+from textual.validation import ValidationResult
+from textual.widgets import Input, Label, ListItem, ListView
 
 from caller.db import APICall
 
@@ -28,7 +31,9 @@ class APICallListItem(ListItem):
         self.api_call = api_call
 
     def compose(self) -> ComposeResult:
-        yield Label(self.api_call.name)
+        yield Label(
+            f"{self.api_call.name} - {self.api_call.method.value} - {self.api_call.url}"
+        )
 
 
 class ListViewVim(ListView):
@@ -75,6 +80,7 @@ class APICallView(Container):
             Label("", id="api-call-response"),
         )
 
+    # TODO: Do this reactively?
     def update_values(self) -> None:
         self.query_one("#selected-api-call-name", Label).update(
             f"name: {self.api_call.name}"
@@ -82,3 +88,29 @@ class APICallView(Container):
         self.query_one("#selected-api-call-url", Label).update(
             f"url: {str(self.api_call.url)}"
         )
+
+
+class ModifyAPICallInput(Input):
+    def __init__(
+        self,
+        attribute: str,
+        value: str | None = None,
+        placeholder: str = "",
+        id: str | None = None,
+    ) -> None:
+        super().__init__(
+            value=value,
+            placeholder=placeholder,
+            id=id,
+        )
+        self.attribute = attribute
+
+    @dataclass
+    class Submitted(Message, bubble=True):
+        input: ModifyAPICallInput
+        value: str
+        validation_result: ValidationResult | None = None
+
+        @property
+        def control(self) -> Input:
+            return self.input

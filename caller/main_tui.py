@@ -67,6 +67,8 @@ class MainApp(App):
         api_call_list_item = self.app.query_one(
             f"#api-call-list-item-{api_call.id}", APICallListItem
         )
+
+        # TODO: Proper update method to update all individual static elements
         for key, value in event.obj_in.dict(exclude_unset=True).items():
             setattr(api_call_list_item, key, value)
 
@@ -80,13 +82,17 @@ class MainApp(App):
 
         validated_call = APICallReady.from_orm(event.api_call)
 
-        res = httpx.request(
-            validated_call.method.value,
-            validated_call.url,
-            headers=headers,
-            params=params,
-            content=validated_call.content,
-        )
+        try:
+            res = httpx.request(
+                validated_call.method.value,
+                validated_call.url,
+                headers=headers,
+                params=params,
+                content=validated_call.content,
+            )
+        except httpx.HTTPError as e:
+            self.query_one("#api-response-container", Container).mount(Label(str(e)))
+            return
 
         resp_db = response_crud.create(
             self.session,

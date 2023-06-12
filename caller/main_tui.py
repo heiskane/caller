@@ -105,9 +105,16 @@ class MainApp(App):
                 api_call_id=validated_call.id,
             ),
         )
+
+        try:
+            content = res.json()
+        except Exception:
+            content = res.content
+
         # TODO: Static reactive response widget
         self.query_one("#api-response-container", Container).mount(
-            Label(str(res.json()))
+            Label(f"STATUS CODE: {resp_db.code}"),
+            Label(str(content)),
         )
 
 

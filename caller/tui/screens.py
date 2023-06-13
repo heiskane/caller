@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from operator import index
-
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -27,6 +25,7 @@ class APICallListScreen(Screen):
         Binding("g", "go_top", "Go to top"),
         Binding("G", "go_bottom", "Go to bottom"),
         Binding("s", "set_url", "Set url"),
+        Binding("u", "set_method", "Set method"),
         Binding("r", "rename", "Rename"),
         Binding("d", "delete_api_call", "Delete"),
     ]
@@ -98,6 +97,19 @@ class APICallListScreen(Screen):
             value=api_call_list_item.api_call.url,
             attribute="url",
             placeholder="url",
+        )
+        self.query_one("#api-call-details-side").mount(input_widget)
+        input_widget.focus()
+
+    def action_set_method(self) -> None:
+        api_call_list_item = self.query_one("#api-calls", ListViewVim).highlighted_child
+        if api_call_list_item is None:
+            return None
+
+        input_widget = ModifyAPICallInput(
+            id="api-call-update",
+            attribute="method",
+            placeholder="method",
         )
         self.query_one("#api-call-details-side").mount(input_widget)
         input_widget.focus()

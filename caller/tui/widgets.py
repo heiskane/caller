@@ -105,7 +105,7 @@ class APICallView(Container):
             f"url: {str(self.api_call.url)}"
         )
         self.query_one("#selected-api-call-method", Label).update(
-            f"url: {str(self.api_call.method.value)}"
+            f"method: {str(self.api_call.method.value)}"
         )
 
 

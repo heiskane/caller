@@ -26,6 +26,7 @@ class APICallListScreen(Screen):
         Binding("G", "go_bottom", "Go to bottom"),
         Binding("s", "set_url", "Set url"),
         Binding("u", "set_method", "Set method"),
+        Binding("t", "set_content", "Set content"),
         Binding("r", "rename", "Rename"),
         Binding("d", "delete_api_call", "Delete"),
     ]
@@ -110,6 +111,19 @@ class APICallListScreen(Screen):
             id="api-call-update",
             attribute="method",
             placeholder="method",
+        )
+        self.query_one("#api-call-details-side").mount(input_widget)
+        input_widget.focus()
+
+    def action_set_content(self) -> None:
+        api_call_list_item = self.query_one("#api-calls", ListViewVim).highlighted_child
+        if api_call_list_item is None:
+            return None
+
+        input_widget = ModifyAPICallInput(
+            id="api-call-update",
+            attribute="content",
+            placeholder="content",
         )
         self.query_one("#api-call-details-side").mount(input_widget)
         input_widget.focus()

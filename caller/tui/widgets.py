@@ -92,6 +92,7 @@ class APICallView(Container):
             Label(
                 f"method: {self.api_call.method.value}", id="selected-api-call-method"
             ),
+            Label(f"content: {self.api_call.content}", id="selected-api-call-content"),
             Label("", id="api-call-response"),
             id="api-call-side-container",
         )
@@ -106,6 +107,9 @@ class APICallView(Container):
         )
         self.query_one("#selected-api-call-method", Label).update(
             f"method: {str(self.api_call.method.value)}"
+        )
+        self.query_one("#selected-api-call-content", Label).update(
+            f"content: {self.api_call.content}"
         )
 
 

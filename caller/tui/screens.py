@@ -7,7 +7,7 @@ from textual.containers import Container
 from textual.css.query import NoMatches
 from textual.message import Message
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Input
+from textual.widgets import Footer, Header, Input, Label
 
 from caller.db import APICall
 from caller.schemas.api_calls import APICallCreate, APICallUpdate
@@ -167,23 +167,16 @@ class APICallListScreen(Screen):
         api_call_view.api_call = event.item.api_call
         api_call_view.update_values()
 
-        try:
-            self.query_one("#api-response-container", Container).remove()
-        except NoMatches:
-            pass
+        if len(event.item.api_call.responses) > 0:
+            self.query_one("#response-content", Label).update(
+                str(event.item.api_call.responses[0].content)
+            )
 
     @on(ListViewVim.Selected, "#api-calls")
     def call_api(self) -> None:
         api_call_list_item = self.query_one("#api-calls", ListViewVim).highlighted_child
         if api_call_list_item is None:
             return None
-
-        try:
-            self.query_one("#api-response-container", Container)
-        except NoMatches:
-            self.query_one("#api-calls-main-container", Container).mount(
-                Container(id="api-response-container")
-            )
 
         self.post_message(self.CallAPI(api_call_list_item.api_call))
 

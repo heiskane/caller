@@ -27,6 +27,9 @@ class APICallsMainContainer(Container):
             id="api-calls-container",
         )
         yield APICallView(self.api_calls[0], id="api-call-details-side")
+        yield Container(
+            Label("asd", id="response-content"), id="api-response-container"
+        )
 
 
 class APICallListItem(ListItem):

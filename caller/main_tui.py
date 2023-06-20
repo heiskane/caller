@@ -68,6 +68,7 @@ class MainApp(App):
             f"#api-call-list-item-{api_call.id}", APICallListItem
         )
 
+        api_call_list_item.api_call = api_call
         # TODO: Proper update method to update all individual static elements
         for key, value in event.obj_in.dict(exclude_unset=True).items():
             setattr(api_call_list_item, key, value)
@@ -91,7 +92,7 @@ class MainApp(App):
                 content=validated_call.content,
             )
         except httpx.HTTPError as e:
-            self.query_one("#api-response-container", Container).mount(Label(str(e)))
+            self.query_one("#response-content", Label).update(str(e))
             return
 
         resp_db = response_crud.create(
@@ -112,9 +113,8 @@ class MainApp(App):
             content = res.content
 
         # TODO: Static reactive response widget
-        self.query_one("#api-response-container", Container).mount(
-            Label(f"STATUS CODE: {resp_db.code}"),
-            Label(str(content)),
+        self.query_one("#response-content", Label).update(
+            f"STATUS CODE: {resp_db.code}\n{str(content)}"
         )
 
 

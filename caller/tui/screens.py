@@ -3,8 +3,6 @@ from __future__ import annotations
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Container
-from textual.css.query import NoMatches
 from textual.message import Message
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Input, Label
